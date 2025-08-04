@@ -4,6 +4,7 @@ import { log } from '../utils/logger';
 import { checkTeamMembership, getTeamSpend, extractUserSpend } from './team';
 import { getExtensionContext } from '../extension';
 import { t } from '../utils/i18n';
+import { createCursorHeaders, enhanceApiError } from '../utils/httpHeaders';
 import * as fs from 'fs';
 
 export async function getCurrentUsageLimit(token: string, teamId?: number): Promise<UsageLimitResponse> {
@@ -12,10 +13,7 @@ export async function getCurrentUsageLimit(token: string, teamId?: number): Prom
         const response = await axios.post('https://cursor.com/api/dashboard/get-hard-limit', 
             payload,
             {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Cookie: `WorkosCursorSessionToken=${token}`
-                }
+                headers: createCursorHeaders(token, true)
             }
         );
         return response.data;
@@ -33,10 +31,7 @@ export async function setUsageLimit(token: string, hardLimit: number, noUsageBas
                 noUsageBasedAllowed
             },
             {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Cookie: `WorkosCursorSessionToken=${token}`
-                }
+                headers: createCursorHeaders(token, true)
             }
         );
         log(`[API] Successfully ${noUsageBasedAllowed ? 'disabled' : 'enabled'} usage-based pricing with limit: $${hardLimit}`);
@@ -55,10 +50,7 @@ export async function checkUsageBasedStatus(token: string, teamId?: number): Pro
         const response = await axios.post('https://cursor.com/api/dashboard/get-usage-based-premium-requests', 
             payload,
             {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Cookie: `WorkosCursorSessionToken=${token}`
-                }
+                headers: createCursorHeaders(token, true)
             }
         );
         
@@ -111,10 +103,7 @@ async function fetchMonthData(token: string, month: number, year: number): Promi
                 year,
                 includeUsageEvents: false
             }, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Cookie: `WorkosCursorSessionToken=${token}`
-                }
+                headers: createCursorHeaders(token, true)
             });
         }
         
@@ -332,7 +321,7 @@ export async function fetchCursorStats(token: string): Promise<CursorStats> {
                 // Get individual usage to get the premium request limit (GPT-4)
                 const individualUsage = await axios.get<CursorUsageResponse>('https://cursor.com/api/usage', {
                     params: { user: userId },
-                    headers: { Cookie: `WorkosCursorSessionToken=${token}` }
+                    headers: createCursorHeaders(token, false)
                 });
                 
                 // Use GPT-4 data for both current usage and limit since it updates faster
@@ -367,9 +356,7 @@ export async function fetchCursorStats(token: string): Promise<CursorStats> {
             log('[API] Using individual usage API...');
             const usageResponse = await axios.get<CursorUsageResponse>('https://cursor.com/api/usage', {
                 params: { user: userId },
-                headers: {
-                    Cookie: `WorkosCursorSessionToken=${token}`
-                }
+                headers: createCursorHeaders(token, false)
             });
 
             const usageData = usageResponse.data;
@@ -440,9 +427,7 @@ export async function fetchCursorStats(token: string): Promise<CursorStats> {
 export async function getStripeSessionUrl(token: string): Promise<string> {
     try {
         const response = await axios.get('https://cursor.com/api/stripeSession', {
-            headers: {
-                Cookie: `WorkosCursorSessionToken=${token}`
-            }
+            headers: createCursorHeaders(token, false)
         });
         // Remove quotes from the response string
         return response.data.replace(/"/g, '');
