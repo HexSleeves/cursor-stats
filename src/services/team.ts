@@ -5,6 +5,7 @@ import axios from 'axios';
 import * as jwt from 'jsonwebtoken';
 import { TeamInfo, TeamMemberInfo, TeamSpendResponse, TeamMemberSpend, UserCache, CursorUsageResponse } from '../interfaces/types';
 import { log } from '../utils/logger';
+import { createCursorHeaders, enhanceApiError } from '../utils/httpHeaders';
 
 const CACHE_FILE_NAME = 'user-cache.json';
 
@@ -81,9 +82,7 @@ export async function checkTeamMembership(token: string, context: vscode.Extensi
         log('[Team] Making request to /api/usage endpoint');
         const usageResponse = await axios.get<CursorUsageResponse>('https://cursor.com/api/usage', {
             params: { user: tokenUserId },
-            headers: {
-                Cookie: `WorkosCursorSessionToken=${token}`
-            }
+            headers: createCursorHeaders(token, false)
         });
         const startOfMonth = usageResponse.data.startOfMonth;
         log('[Team] Usage API response', {
@@ -97,10 +96,7 @@ export async function checkTeamMembership(token: string, context: vscode.Extensi
         const response = await axios.post<TeamInfo>('https://cursor.com/api/dashboard/teams', 
             {}, // empty JSON body
             {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Cookie: `WorkosCursorSessionToken=${token}`
-                }
+                headers: createCursorHeaders(token, true)
             }
         );
         
@@ -121,10 +117,7 @@ export async function checkTeamMembership(token: string, context: vscode.Extensi
             const teamResponse = await axios.post<TeamMemberInfo>('https://cursor.com/api/dashboard/team', 
                 { teamId },
                 {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Cookie: `WorkosCursorSessionToken=${token}`
-                    }
+                    headers: createCursorHeaders(token, true)
                 }
             );
             teamUserId = teamResponse.data.userId;
@@ -169,10 +162,7 @@ export async function getTeamSpend(token: string, teamId: number): Promise<TeamS
         const response = await axios.post<TeamSpendResponse>('https://cursor.com/api/dashboard/get-team-spend', 
             { teamId }, // Include teamId in request body
             {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Cookie: `WorkosCursorSessionToken=${token}`
-                }
+                headers: createCursorHeaders(token, true)
             }
         );
         log('[Team] Team spend response', {
@@ -182,7 +172,8 @@ export async function getTeamSpend(token: string, teamId: number): Promise<TeamS
         });
         return response.data;
     } catch (error: any) {
-        log('[Team] Error fetching team spend', error.message, true);
+        const enhancedError = enhanceApiError(error, 'Team Spend');
+        log('[Team] Error fetching team spend', enhancedError.message, true);
         log('[Team] Team spend error details', {
             status: error.response?.status,
             data: error.response?.data,
@@ -190,9 +181,10 @@ export async function getTeamSpend(token: string, teamId: number): Promise<TeamS
             config: {
                 url: error.config?.url,
                 method: error.config?.method
-            }
+            },
+            isOriginError: error.response?.data?.error === 'Invalid origin for state-changing request'
         }, true);
-        throw error;
+        throw enhancedError;
     }
 }
 
