@@ -5,10 +5,11 @@ import * as path from 'path';
 import { log } from './logger';
 import { CurrencyRates, CurrencyCache } from '../interfaces/types';
 import { getExtensionContext } from '../extension';
+import { API_ENDPOINTS, TIME, FILE_SYSTEM } from '../constants';
 
-const CURRENCY_API_URL = 'https://latest.currency-api.pages.dev/v1/currencies/usd.json';
-const CURRENCY_CACHE_FILE = 'currency-rates.json';
-const CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
+const CURRENCY_API_URL = API_ENDPOINTS.CURRENCY_API;
+const CURRENCY_CACHE_FILE = FILE_SYSTEM.CURRENCY_CACHE_FILE;
+const CACHE_EXPIRY_MS = TIME.CURRENCY_CACHE_EXPIRY;
 
 // List of supported currencies (excluding cryptocurrencies)
 // Updated to list only currency codes; names will be localized via i18n

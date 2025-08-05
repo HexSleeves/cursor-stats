@@ -5,6 +5,8 @@
  * Addresses CORS and Origin validation issues
  */
 
+import { HTTP } from '../constants';
+
 /**
  * Generates standard cursor.com request headers to resolve 403 Invalid origin errors
  * @param token - Authentication token (WorkosCursorSessionToken)
@@ -17,31 +19,30 @@ export function createCursorHeaders(
 ): Record<string, string> {
   const headers: Record<string, string> = {
     // Critical headers to resolve "Invalid origin for state-changing request" errors
-    Origin: 'https://cursor.com',
-    Referer: 'https://cursor.com/',
+    Origin: HTTP.HEADERS.ORIGIN,
+    Referer: HTTP.HEADERS.REFERER,
 
     // Simulate real browser environment
-    'User-Agent':
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'User-Agent': HTTP.HEADERS.USER_AGENT,
 
     // Authentication
     Cookie: `WorkosCursorSessionToken=${token}`,
 
     // Standard request headers
-    Accept: 'application/json, text/plain, */*',
-    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-    'Accept-Encoding': 'gzip, deflate, br',
-    Connection: 'keep-alive',
+    Accept: HTTP.HEADERS.ACCEPT,
+    'Accept-Language': HTTP.HEADERS.ACCEPT_LANGUAGE,
+    'Accept-Encoding': HTTP.HEADERS.ACCEPT_ENCODING,
+    Connection: HTTP.HEADERS.CONNECTION,
 
     // Security policy related
-    'Sec-Fetch-Dest': 'empty',
-    'Sec-Fetch-Mode': 'cors',
-    'Sec-Fetch-Site': 'same-origin',
+    'Sec-Fetch-Dest': HTTP.HEADERS.SEC_FETCH_DEST,
+    'Sec-Fetch-Mode': HTTP.HEADERS.SEC_FETCH_MODE,
+    'Sec-Fetch-Site': HTTP.HEADERS.SEC_FETCH_SITE,
   };
 
   // POST requests require Content-Type header
   if (isPostRequest) {
-    headers['Content-Type'] = 'application/json';
+    headers['Content-Type'] = HTTP.HEADERS.CONTENT_TYPE;
   }
 
   return headers;

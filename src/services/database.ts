@@ -16,6 +16,7 @@ import {
   isAuthError,
   getErrorInfo,
 } from '../interfaces/errors';
+import { DATABASE, TIME, VALIDATION, FILE_SYSTEM } from '../constants';
 
 // use globalStorageUri to get the user directory path
 // support Portable mode : https://code.visualstudio.com/docs/editor/portable
@@ -68,29 +69,54 @@ export function getCursorDBPath(): string {
     let defaultPath: string;
 
     if (process.platform === 'win32') {
-      defaultPath = path.join(userDirPath, 'User', 'globalStorage', 'state.vscdb');
+      defaultPath = path.join(
+        userDirPath,
+        DATABASE.PATH_COMPONENTS.USER,
+        DATABASE.PATH_COMPONENTS.GLOBAL_STORAGE,
+        DATABASE.STATE_DB_FILE,
+      );
     } else if (process.platform === 'linux') {
       const isWSL = vscode.env.remoteName === 'wsl';
       if (isWSL) {
         const windowsUsername = getWindowsUsername();
         if (windowsUsername) {
           defaultPath = path.join(
-            '/mnt/c/Users',
+            DATABASE.PLATFORM_PATHS.WSL_MOUNT,
             windowsUsername,
-            'AppData/Roaming',
+            DATABASE.PLATFORM_PATHS.WINDOWS_APPDATA,
             folderName,
-            'User/globalStorage/state.vscdb',
+            `${DATABASE.PATH_COMPONENTS.USER}/${DATABASE.PATH_COMPONENTS.GLOBAL_STORAGE}/${DATABASE.STATE_DB_FILE}`,
           );
         } else {
-          defaultPath = path.join(userDirPath, 'User', 'globalStorage', 'state.vscdb');
+          defaultPath = path.join(
+            userDirPath,
+            DATABASE.PATH_COMPONENTS.USER,
+            DATABASE.PATH_COMPONENTS.GLOBAL_STORAGE,
+            DATABASE.STATE_DB_FILE,
+          );
         }
       } else {
-        defaultPath = path.join(userDirPath, 'User', 'globalStorage', 'state.vscdb');
+        defaultPath = path.join(
+          userDirPath,
+          DATABASE.PATH_COMPONENTS.USER,
+          DATABASE.PATH_COMPONENTS.GLOBAL_STORAGE,
+          DATABASE.STATE_DB_FILE,
+        );
       }
     } else if (process.platform === 'darwin') {
-      defaultPath = path.join(userDirPath, 'User', 'globalStorage', 'state.vscdb');
+      defaultPath = path.join(
+        userDirPath,
+        DATABASE.PATH_COMPONENTS.USER,
+        DATABASE.PATH_COMPONENTS.GLOBAL_STORAGE,
+        DATABASE.STATE_DB_FILE,
+      );
     } else {
-      defaultPath = path.join(userDirPath, 'User', 'globalStorage', 'state.vscdb');
+      defaultPath = path.join(
+        userDirPath,
+        DATABASE.PATH_COMPONENTS.USER,
+        DATABASE.PATH_COMPONENTS.GLOBAL_STORAGE,
+        DATABASE.STATE_DB_FILE,
+      );
     }
 
     // Validate default path (should always pass, but good to be safe)
@@ -196,13 +222,13 @@ export async function getCursorTokenFromDB(): Promise<string | undefined> {
     // Query for authentication token
     let result: any[];
     try {
-      result = db.exec("SELECT value FROM ItemTable WHERE key = 'cursorAuth/accessToken'");
+      result = db.exec(DATABASE.QUERIES.GET_AUTH_TOKEN);
     } catch (queryError) {
       const error = ErrorFactory.createDatabaseError('Failed to query authentication token', {
         code: 'TOKEN_QUERY_FAILED',
         path: dbPath,
         operation: 'query',
-        query: "SELECT value FROM ItemTable WHERE key = 'cursorAuth/accessToken'",
+        query: DATABASE.QUERIES.GET_AUTH_TOKEN,
         cause: queryError instanceof Error ? queryError : new Error(String(queryError)),
       });
       log(`[Database] Query failed: ${error.message}`, true);
@@ -280,9 +306,9 @@ export async function getCursorTokenFromDB(): Promise<string | undefined> {
 export function getWindowsUsername(): string | undefined {
   try {
     // Executes cmd.exe and echoes the %USERNAME% variable
-    const result = execSync('cmd.exe /C "echo %USERNAME%"', {
-      encoding: 'utf8',
-      timeout: 5000, // 5 second timeout
+    const result = execSync(DATABASE.WINDOWS_USERNAME_CMD, {
+      encoding: FILE_SYSTEM.UTF8_ENCODING,
+      timeout: TIME.WINDOWS_USERNAME_TIMEOUT,
     });
 
     const username = result.trim();
@@ -292,7 +318,7 @@ export function getWindowsUsername(): string | undefined {
     }
 
     // Basic validation - username should not contain invalid characters
-    if (username.includes('..') || username.includes('/') || username.includes('\\')) {
+    if (FILE_SYSTEM.INVALID_PATH_CHARS.some((char) => username.includes(char))) {
       log(`[Database] Windows username contains invalid characters: ${username}`, true);
       return undefined;
     }

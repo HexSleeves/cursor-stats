@@ -1,12 +1,13 @@
 import * as vscode from 'vscode';
 import { ProgressBarSettings } from '../interfaces/types';
 import { t } from './i18n';
+import { UI, CONFIG_DEFAULTS } from '../constants';
 
 // Emojis for progress bar representation
-const PROGRESS_EMPTY = '⬜';
-const PROGRESS_FILLED = '🟩';
-const PROGRESS_WARNING = '🟨';
-const PROGRESS_CRITICAL = '🟥';
+const PROGRESS_EMPTY = UI.PROGRESS_EMPTY;
+const PROGRESS_FILLED = UI.PROGRESS_FILLED;
+const PROGRESS_WARNING = UI.PROGRESS_WARNING;
+const PROGRESS_CRITICAL = UI.PROGRESS_CRITICAL;
 
 /**
  * Generate a progress bar using emoji characters
@@ -51,7 +52,7 @@ export function createProgressBar(
  */
 export function shouldShowProgressBars(): boolean {
   const config = vscode.workspace.getConfiguration('cursorStats');
-  return config.get<boolean>('showProgressBars', false);
+  return config.get<boolean>('showProgressBars', CONFIG_DEFAULTS.SHOW_PROGRESS_BARS);
 }
 
 /**
@@ -62,9 +63,15 @@ export function getProgressBarSettings(): ProgressBarSettings {
   const config = vscode.workspace.getConfiguration('cursorStats');
 
   return {
-    barLength: config.get<number>('progressBarLength', 10),
-    warningThreshold: config.get<number>('progressBarWarningThreshold', 75),
-    criticalThreshold: config.get<number>('progressBarCriticalThreshold', 90),
+    barLength: config.get<number>('progressBarLength', CONFIG_DEFAULTS.PROGRESS_BAR_LENGTH),
+    warningThreshold: config.get<number>(
+      'progressBarWarningThreshold',
+      CONFIG_DEFAULTS.PROGRESS_BAR_WARNING_THRESHOLD,
+    ),
+    criticalThreshold: config.get<number>(
+      'progressBarCriticalThreshold',
+      CONFIG_DEFAULTS.PROGRESS_BAR_CRITICAL_THRESHOLD,
+    ),
   };
 }
 

@@ -11,6 +11,7 @@ import { getExtensionContext } from '../extension';
 import { t } from '../utils/i18n';
 import { createCursorHeaders } from '../utils/httpHeaders';
 import { ErrorFactory, ApiError, FileSystemError, getErrorInfo } from '../interfaces/errors';
+import { API_ENDPOINTS, VALIDATION } from '../constants';
 import * as fs from 'fs';
 
 /**
@@ -68,7 +69,7 @@ export async function getCurrentUsageLimit(
   token: string,
   teamId?: number,
 ): Promise<UsageLimitResponse> {
-  const endpoint = 'https://cursor.com/api/dashboard/get-hard-limit';
+  const endpoint = API_ENDPOINTS.GET_HARD_LIMIT;
 
   try {
     const payload = teamId ? { teamId } : {};
@@ -105,7 +106,7 @@ export async function setUsageLimit(
   hardLimit: number,
   noUsageBasedAllowed: boolean,
 ): Promise<void> {
-  const endpoint = 'https://cursor.com/api/dashboard/set-hard-limit';
+  const endpoint = API_ENDPOINTS.SET_HARD_LIMIT;
 
   try {
     await axios.post(
@@ -143,13 +144,9 @@ export async function checkUsageBasedStatus(
     const payload = teamId ? { teamId } : {};
     log(`[API] Checking usage-based status with payload: ${JSON.stringify(payload)}`);
 
-    const response = await axios.post(
-      'https://cursor.com/api/dashboard/get-usage-based-premium-requests',
-      payload,
-      {
-        headers: createCursorHeaders(token, true),
-      },
-    );
+    const response = await axios.post(API_ENDPOINTS.GET_USAGE_BASED_STATUS, payload, {
+      headers: createCursorHeaders(token, true),
+    });
 
     log(`[API] Usage-based status response: ${JSON.stringify(response.data)}`);
 
@@ -167,7 +164,7 @@ export async function checkUsageBasedStatus(
   } catch (error) {
     const apiError = createApiErrorFromAxios(error, {
       operation: 'check_usage_based_status',
-      endpoint: 'https://cursor.com/api/dashboard/get-usage-based-premium-requests',
+      endpoint: API_ENDPOINTS.GET_USAGE_BASED_STATUS,
       method: 'POST',
     });
 
@@ -213,7 +210,7 @@ async function fetchMonthData(
       }
     } else {
       response = await axios.post(
-        'https://cursor.com/api/dashboard/get-monthly-invoice',
+        API_ENDPOINTS.GET_MONTHLY_INVOICE,
         {
           month,
           year,
@@ -425,7 +422,7 @@ async function fetchMonthData(
   } catch (error) {
     const apiError = createApiErrorFromAxios(error, {
       operation: 'get_monthly_data',
-      endpoint: 'https://cursor.com/api/dashboard/get-monthly-invoice',
+      endpoint: API_ENDPOINTS.GET_MONTHLY_INVOICE,
       method: 'POST',
     });
 
@@ -437,7 +434,7 @@ async function fetchMonthData(
 
 export async function fetchCursorStats(token: string): Promise<CursorStats> {
   // Extract user ID from token
-  const userId = token.split('%3A%3A')[0];
+  const userId = token.split(VALIDATION.TOKEN_SEPARATOR)[VALIDATION.FIRST_INDEX];
 
   try {
     // Check if user is a team member
@@ -455,13 +452,10 @@ export async function fetchCursorStats(token: string): Promise<CursorStats> {
         const userSpend = extractUserSpend(teamSpend, teamInfo.userId);
 
         // Get individual usage to get the premium request limit (GPT-4)
-        const individualUsage = await axios.get<CursorUsageResponse>(
-          'https://cursor.com/api/usage',
-          {
-            params: { user: userId },
-            headers: createCursorHeaders(token, false),
-          },
-        );
+        const individualUsage = await axios.get<CursorUsageResponse>(API_ENDPOINTS.GET_USAGE, {
+          params: { user: userId },
+          headers: createCursorHeaders(token, false),
+        });
 
         // Use GPT-4 data for both current usage and limit since it updates faster
         const premiumRequestLimit = individualUsage.data['gpt-4'].maxRequestUsage || 500;
@@ -498,7 +492,7 @@ export async function fetchCursorStats(token: string): Promise<CursorStats> {
     // Fallback to individual usage API if team methods failed or user is not a team member
     if (!premiumRequests) {
       log('[API] Using individual usage API...');
-      const usageResponse = await axios.get<CursorUsageResponse>('https://cursor.com/api/usage', {
+      const usageResponse = await axios.get<CursorUsageResponse>(API_ENDPOINTS.GET_USAGE, {
         params: { user: userId },
         headers: createCursorHeaders(token, false),
       });
@@ -520,7 +514,7 @@ export async function fetchCursorStats(token: string): Promise<CursorStats> {
 
     // Get current date for usage-based pricing (which renews on 2nd/3rd of each month)
     const currentDate = new Date();
-    const usageBasedBillingDay = 3; // Assuming it's the 3rd day of the month
+    const usageBasedBillingDay = VALIDATION.USAGE_BASED_BILLING_DAY;
     let usageBasedCurrentMonth = currentDate.getMonth() + 1;
     let usageBasedCurrentYear = currentDate.getFullYear();
 
@@ -567,7 +561,7 @@ export async function fetchCursorStats(token: string): Promise<CursorStats> {
   } catch (error) {
     const apiError = createApiErrorFromAxios(error, {
       operation: 'fetch_cursor_stats',
-      endpoint: 'https://cursor.com/api/usage',
+      endpoint: API_ENDPOINTS.GET_USAGE,
       method: 'GET',
     });
 
@@ -579,7 +573,7 @@ export async function fetchCursorStats(token: string): Promise<CursorStats> {
 
 export async function getStripeSessionUrl(token: string): Promise<string> {
   try {
-    const response = await axios.get('https://cursor.com/api/stripeSession', {
+    const response = await axios.get(API_ENDPOINTS.GET_STRIPE_SESSION, {
       headers: createCursorHeaders(token, false),
     });
     // Remove quotes from the response string
@@ -587,7 +581,7 @@ export async function getStripeSessionUrl(token: string): Promise<string> {
   } catch (error) {
     const apiError = createApiErrorFromAxios(error, {
       operation: 'get_stripe_session_url',
-      endpoint: 'https://cursor.com/api/stripeSession',
+      endpoint: API_ENDPOINTS.GET_STRIPE_SESSION,
       method: 'GET',
     });
 

@@ -13,6 +13,7 @@ import {
   calculateDailyRemaining,
   getMonthNumber,
 } from '../utils/progressBars';
+import { UI, CONFIG_DEFAULTS, VALIDATION, MONTHS } from '../constants';
 
 let statusBarItem: vscode.StatusBarItem;
 
@@ -24,12 +25,15 @@ interface ColorThreshold {
 
 export function createStatusBarItem(): vscode.StatusBarItem {
   log('[Status Bar] Creating status bar item...');
-  statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-  log('[Status Bar] Status bar alignment: Right, Priority: 100');
+  statusBarItem = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Right,
+    UI.STATUS_BAR_PRIORITY,
+  );
+  log(`[Status Bar] Status bar alignment: Right, Priority: ${UI.STATUS_BAR_PRIORITY}`);
   return statusBarItem;
 }
 
-export function formatTooltipLine(text: string, maxWidth: number = 50): string {
+export function formatTooltipLine(text: string, maxWidth: number = UI.TOOLTIP_MAX_WIDTH): string {
   if (text.length <= maxWidth) {
     return text;
   }
@@ -58,15 +62,15 @@ export function getMaxLineWidth(lines: string[]): number {
 }
 
 export function createSeparator(width: number): string {
-  const separatorWidth = Math.floor(width / 2);
-  return '╌'.repeat(separatorWidth + 5);
+  const separatorWidth = Math.floor(width / UI.SEPARATOR_WIDTH_DIVISOR);
+  return '╌'.repeat(separatorWidth + UI.SEPARATOR_PADDING);
 }
 
 export function formatRelativeTime(dateString: string): string {
   const date = new Date(dateString);
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-  const seconds = date.getSeconds().toString().padStart(2, '0');
+  const hours = date.getHours().toString().padStart(UI.TIME_PADDING, UI.TIME_PADDING_CHAR);
+  const minutes = date.getMinutes().toString().padStart(UI.TIME_PADDING, UI.TIME_PADDING_CHAR);
+  const seconds = date.getSeconds().toString().padStart(UI.TIME_PADDING, UI.TIME_PADDING_CHAR);
 
   return `${hours}:${minutes}:${seconds}`;
 }
@@ -437,33 +441,32 @@ export function getStatusBarColor(percentage: number): vscode.ThemeColor | strin
   }
 
   // Fallback to original hardcoded logic if no custom thresholds or no match found
-  // (Or return a default color - let's stick to the original logic as fallback for now)
-  if (percentage >= 95) {
-    return '#CC0000';
-  } else if (percentage >= 90) {
-    return '#FF3333';
-  } else if (percentage >= 85) {
-    return '#FF4D4D';
-  } else if (percentage >= 80) {
-    return '#FF6600';
-  } else if (percentage >= 75) {
-    return '#FF8800';
-  } else if (percentage >= 70) {
-    return '#FFAA00';
-  } else if (percentage >= 65) {
-    return '#FFCC00';
-  } else if (percentage >= 60) {
-    return '#FFE066';
-  } else if (percentage >= 50) {
-    return '#DCE775';
-  } else if (percentage >= 40) {
-    return '#66BB6A';
-  } else if (percentage >= 30) {
-    return '#81C784';
-  } else if (percentage >= 20) {
-    return '#B3E6B3';
-  } else if (percentage >= 10) {
-    return '#E8F5E9';
+  if (percentage >= CONFIG_DEFAULTS.USAGE_THRESHOLDS.CRITICAL_95) {
+    return CONFIG_DEFAULTS.USAGE_COLORS.CRITICAL_95;
+  } else if (percentage >= CONFIG_DEFAULTS.USAGE_THRESHOLDS.CRITICAL_90) {
+    return CONFIG_DEFAULTS.USAGE_COLORS.CRITICAL_90;
+  } else if (percentage >= CONFIG_DEFAULTS.USAGE_THRESHOLDS.HIGH_85) {
+    return CONFIG_DEFAULTS.USAGE_COLORS.HIGH_85;
+  } else if (percentage >= CONFIG_DEFAULTS.USAGE_THRESHOLDS.HIGH_80) {
+    return CONFIG_DEFAULTS.USAGE_COLORS.HIGH_80;
+  } else if (percentage >= CONFIG_DEFAULTS.USAGE_THRESHOLDS.MEDIUM_HIGH_75) {
+    return CONFIG_DEFAULTS.USAGE_COLORS.MEDIUM_HIGH_75;
+  } else if (percentage >= CONFIG_DEFAULTS.USAGE_THRESHOLDS.MEDIUM_HIGH_70) {
+    return CONFIG_DEFAULTS.USAGE_COLORS.MEDIUM_HIGH_70;
+  } else if (percentage >= CONFIG_DEFAULTS.USAGE_THRESHOLDS.MEDIUM_65) {
+    return CONFIG_DEFAULTS.USAGE_COLORS.MEDIUM_65;
+  } else if (percentage >= CONFIG_DEFAULTS.USAGE_THRESHOLDS.MEDIUM_60) {
+    return CONFIG_DEFAULTS.USAGE_COLORS.MEDIUM_60;
+  } else if (percentage >= CONFIG_DEFAULTS.USAGE_THRESHOLDS.MEDIUM_LOW_50) {
+    return CONFIG_DEFAULTS.USAGE_COLORS.MEDIUM_LOW_50;
+  } else if (percentage >= CONFIG_DEFAULTS.USAGE_THRESHOLDS.LOW_40) {
+    return CONFIG_DEFAULTS.USAGE_COLORS.LOW_40;
+  } else if (percentage >= CONFIG_DEFAULTS.USAGE_THRESHOLDS.LOW_30) {
+    return CONFIG_DEFAULTS.USAGE_COLORS.LOW_30;
+  } else if (percentage >= CONFIG_DEFAULTS.USAGE_THRESHOLDS.VERY_LOW_20) {
+    return CONFIG_DEFAULTS.USAGE_COLORS.VERY_LOW_20;
+  } else if (percentage >= CONFIG_DEFAULTS.USAGE_THRESHOLDS.MINIMAL_10) {
+    return CONFIG_DEFAULTS.USAGE_COLORS.MINIMAL_10;
   } else {
     // If percentage is below all custom/default thresholds, use the default color
     return '#FFFFFF';
@@ -471,21 +474,7 @@ export function getStatusBarColor(percentage: number): vscode.ThemeColor | strin
 }
 
 export function getMonthName(month: number): string {
-  const monthKeys = [
-    'january',
-    'february',
-    'march',
-    'april',
-    'may',
-    'june',
-    'july',
-    'august',
-    'september',
-    'october',
-    'november',
-    'december',
-  ];
-  const monthKey = monthKeys[month - 1];
+  const monthKey = MONTHS.KEYS[month - VALIDATION.FIRST_MONTH];
   return monthKey ? t(`statusBar.months.${monthKey}`) : `${t('statusBar.month')} ${month}`;
 }
 
@@ -498,41 +487,14 @@ function calculateDateElapsedPercentage(startDateStr: string, endDateStr: string
     const months: { [key: string]: number } = {};
 
     // English month names (fallback)
-    const englishMonths = {
-      January: 0,
-      February: 1,
-      March: 2,
-      April: 3,
-      May: 4,
-      June: 5,
-      July: 6,
-      August: 7,
-      September: 8,
-      October: 9,
-      November: 10,
-      December: 11,
-    };
+    const englishMonths = MONTHS.NAME_TO_NUMBER;
 
     // Add English names
     Object.assign(months, englishMonths);
 
     // Add translated names
-    for (let i = 0; i < 12; i++) {
-      const monthKeys = [
-        'january',
-        'february',
-        'march',
-        'april',
-        'may',
-        'june',
-        'july',
-        'august',
-        'september',
-        'october',
-        'november',
-        'december',
-      ];
-      const translatedName = t(`statusBar.months.${monthKeys[i]}`);
+    for (let i = 0; i < VALIDATION.MONTHS_IN_YEAR; i++) {
+      const translatedName = t(`statusBar.months.${MONTHS.KEYS[i]}`);
       months[translatedName] = i;
     }
 

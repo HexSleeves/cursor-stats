@@ -3,6 +3,7 @@ import { updateStats } from '../utils/updateStats';
 import { log } from './logger';
 import * as vscode from 'vscode';
 import { t } from './i18n';
+import { TIME } from '../constants';
 
 // Private state
 let _countdownInterval: NodeJS.Timeout | null = null;
@@ -12,7 +13,7 @@ let _consecutiveErrorCount: number = 0;
 let _isWindowFocused: boolean = true;
 let _statusBarItem: vscode.StatusBarItem | null = null;
 
-export const COOLDOWN_DURATION_MS = 10 * 60 * 1000; // 10 minutes
+export const COOLDOWN_DURATION_MS = TIME.COOLDOWN_DURATION;
 
 // Getters
 export const getCountdownInterval = () => _countdownInterval;
@@ -101,7 +102,7 @@ export function startCountdownDisplay() {
   // Start the countdown immediately
   updateCountdown();
   // Then set up the interval
-  _countdownInterval = setInterval(updateCountdown, 1000);
+  _countdownInterval = setInterval(updateCountdown, TIME.COUNTDOWN_UPDATE_INTERVAL);
 
   log(`[Cooldown] Started countdown timer at ${new Date().toISOString()}`);
 }
