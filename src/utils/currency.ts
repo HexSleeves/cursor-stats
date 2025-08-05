@@ -240,7 +240,7 @@ export async function convertAndFormatCurrency(
   }
 
   try {
-    const { value, symbol } = await convertAmount(amount, currencyCode);
+    const { value } = await convertAmount(amount, currencyCode);
     return formatCurrency(value, currencyCode, decimals);
   } catch (error) {
     return `$${amount.toFixed(decimals)}`;

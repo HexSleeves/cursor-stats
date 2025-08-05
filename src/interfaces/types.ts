@@ -21,23 +21,23 @@ export interface UsageBasedPricing {
 }
 
 export interface CursorStats {
-    currentMonth: {
-        month: number;
-        year: number;
-        usageBasedPricing: UsageBasedPricing;
-    };
-    lastMonth: {
-        month: number;
-        year: number;
-        usageBasedPricing: UsageBasedPricing;
-    };
-    premiumRequests: {
-        current: number;
-        limit: number;
-        startOfMonth: string;
-    };
-    isTeamSpendData?: boolean;
-    teamId?: number;
+  currentMonth: {
+    month: number;
+    year: number;
+    usageBasedPricing: UsageBasedPricing;
+  };
+  lastMonth: {
+    month: number;
+    year: number;
+    usageBasedPricing: UsageBasedPricing;
+  };
+  premiumRequests: {
+    current: number;
+    limit: number;
+    startOfMonth: string;
+  };
+  isTeamSpendData?: boolean;
+  teamId?: number;
 }
 
 export interface ProgressBarSettings {
@@ -57,7 +57,7 @@ export interface SQLiteError extends Error {
 
 export interface AxiosErrorData {
   status?: number;
-  data?: any;
+  data?: unknown;
   message?: string;
 }
 
@@ -70,9 +70,9 @@ export interface ComposerData {
   conversation: Array<{
     timingInfo?: {
       clientStartTime: number;
-      [key: string]: any;
+      [key: string]: unknown;
     };
-    [key: string]: any;
+    [key: string]: unknown;
   }>;
 }
 
@@ -81,14 +81,14 @@ export interface TimingInfo {
   timestamp: number;
   timingInfo: {
     clientStartTime: number;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
 export interface UsageLimitResponse {
-    hardLimit?: number;
-    hardLimitPerUser?: number;
-    noUsageBasedAllowed?: boolean;
+  hardLimit?: number;
+  hardLimitPerUser?: number;
+  noUsageBasedAllowed?: boolean;
 }
 
 export interface GitHubRelease {
@@ -173,7 +173,6 @@ export interface TeamMember {
   role: string;
 }
 
-
 export interface UserCache {
   userId: number;
   jwtSub: string;
@@ -196,48 +195,48 @@ export interface CurrencyCache {
 }
 
 export interface CursorReport {
-    timestamp: string;
-    extensionVersion: string;
-    os: string;
-    vsCodeVersion: string;
-    cursorStats: CursorStats | null;
-    usageLimitResponse: UsageLimitResponse | null;
-    premiumUsage: CursorUsageResponse | null;
-    teamInfo: {
-        isTeamMember: boolean;
-        teamId?: number;
-        userId?: number;
-    } | null;
-    teamSpend: TeamSpendResponse | null;
-    rawResponses: {
-        cursorStats?: any;
-        usageLimit?: any;
-        premiumUsage?: any;
-        teamInfo?: any;
-        teamSpend?: any;
-        monthlyInvoice?: {
-            current?: any;
-            last?: any;
-        };
+  timestamp: string;
+  extensionVersion: string;
+  os: string;
+  vsCodeVersion: string;
+  cursorStats: CursorStats | null;
+  usageLimitResponse: UsageLimitResponse | null;
+  premiumUsage: CursorUsageResponse | null;
+  teamInfo: {
+    isTeamMember: boolean;
+    teamId?: number;
+    userId?: number;
+  } | null;
+  teamSpend: TeamSpendResponse | null;
+  rawResponses: {
+    cursorStats?: unknown;
+    usageLimit?: unknown;
+    premiumUsage?: unknown;
+    teamInfo?: unknown;
+    teamSpend?: unknown;
+    monthlyInvoice?: {
+      current?: unknown;
+      last?: unknown;
     };
-    logs: string[];
-    errors: {
-        [key: string]: string;
-    };
+  };
+  logs: string[];
+  errors: {
+    [key: string]: string;
+  };
 }
 
 export interface TeamSpendResponse {
-    teamMemberSpend: TeamMemberSpend[];
-    subscriptionCycleStart: string;
-    totalMembers: number;
-    totalPages: number;
+  teamMemberSpend: TeamMemberSpend[];
+  subscriptionCycleStart: string;
+  totalMembers: number;
+  totalPages: number;
 }
 
 export interface TeamMemberSpend {
-    userId: number;
-    name: string;
-    email: string;
-    role: string;
-    hardLimitOverrideDollars: number;
-    fastPremiumRequests?: number;
-} 
+  userId: number;
+  name: string;
+  email: string;
+  role: string;
+  hardLimitOverrideDollars: number;
+  fastPremiumRequests?: number;
+}
