@@ -1,15 +1,19 @@
 /**
  * 文件说明：负责拉取 Cursor 使用统计并更新状态栏显示文本
- * 变更内容：在状态栏的“已用/总数”后追加“剩余XX%”文案
+ * 变更内容：在状态栏的"已用/总数"后追加"剩余XX%"文案
  * 注意事项：
  * 1. 当 limit 为 0 或无效时，剩余百分比显示为 0%
  * 2. 保持现有颜色与提示逻辑不变，仅扩展文本展示
+ * 3. 百分比智能保留小数位数，最多三位，能除尽的显示整数
  * @author SM
  */
+
+
 import { log } from './logger';
 import { getCursorTokenFromDB } from '../services/database';
 import { checkUsageBasedStatus, fetchCursorStats } from '../services/api';
 import { checkAndNotifyUsage, checkAndNotifySpending, checkAndNotifyUnpaidInvoice, checkAndNotifySmartUsageMonitor } from '../handlers/notifications';
+import { formatRemainingPercentage, formatPercentageIntelligent } from './percentageFormatter';
 import { 
     startRefreshInterval,
     getCooldownStartTime,
@@ -85,12 +89,11 @@ export async function updateStats(statusBarItem: vscode.StatusBarItem) {
         
         let costText = '';
         
-        // 计算使用百分比（已使用）
-        const premiumPercent = Math.round((stats.premiumRequests.current / stats.premiumRequests.limit) * 100);
-        // 计算剩余百分比：边界保护，避免负值或超过 100
-        const remainingPercent = stats.premiumRequests.limit > 0
-            ? Math.max(0, Math.min(100, 100 - premiumPercent))
-            : 0;
+        // 计算使用百分比（已使用） - 保持精确值用于剩余百分比计算
+        const premiumPercentExact = (stats.premiumRequests.current / stats.premiumRequests.limit) * 100;
+        const premiumPercent = Math.round(premiumPercentExact);
+        // 计算剩余百分比：边界保护，避免负值或超过 100，智能保留小数位数（最多3位）
+        const remainingPercent = formatRemainingPercentage(stats.premiumRequests.current, stats.premiumRequests.limit);
         let usageBasedPercent = 0;
         let totalUsageText = '';
 
@@ -306,7 +309,7 @@ export async function updateStats(statusBarItem: vscode.StatusBarItem) {
             const unpaidAmount = Math.max(0, actualTotalCost - activeMonthData.usageBasedPricing.midMonthPayment);
             
             // Calculate usage percentage based on actual total cost (always in USD)
-            const usagePercentage = usageStatus.limit ? ((actualTotalCost / usageStatus.limit) * 100).toFixed(1) : '0.0';
+            const usagePercentage = usageStatus.limit ? formatPercentageIntelligent((actualTotalCost / usageStatus.limit) * 100) : '0';
             
             // Convert currency for tooltip
             const currencyCode = getCurrentCurrency();

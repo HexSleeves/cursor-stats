@@ -5,6 +5,7 @@ import { getCursorTokenFromDB } from '../services/database';
 import { convertAndFormatCurrency } from '../utils/currency';
 import { t } from '../utils/i18n';
 import { getExtensionContext } from '../extension';
+import { formatPercentageIntelligent } from '../utils/percentageFormatter';
 import { checkTeamMembership } from '../services/team';
 import {
   shouldShowProgressBars,
@@ -246,7 +247,7 @@ export async function createMarkdownTooltip(lines: string[], isError: boolean = 
                             usagePercentage = originalUsageData.percentage;
                         } else {
                             // Fallback to calculating with converted values
-                            usagePercentage = ((totalCost / limitResponse.hardLimit) * 100).toFixed(1);
+                            usagePercentage = formatPercentageIntelligent((totalCost / limitResponse.hardLimit) * 100);
                         }
                         
                         // Convert the limit to the user's preferred currency

@@ -5,7 +5,7 @@ All notable changes to the "cursor-stats" extension will be documented in this f
 ## [1.1.7] - 2025-08-11
 
 ### Added
-- Status bar now displays "Remaining Percentage": shows "Remaining XX%" after "Used/Total".
+- Status bar now displays "Remaining Percentage": shows "Remaining XX%" after "Used/Total" with intelligent decimal precision (up to 3 decimal places, showing integers when divisible).
 - New "Smart Usage Monitor": detects heavy AI usage within a short period every N queries and warns users that the selected model might be incorrect.
   - Toggle via setting: `cursorStats.smartUsageMonitorEnabled` (enabled by default)
   - Configurable check interval (queries): `cursorStats.smartUsageMonitorInterval` (default: check every 5 queries)
