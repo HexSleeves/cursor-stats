@@ -104,7 +104,12 @@
     "dismiss": "Verwerfen",
     "unknownModelsDetected": "Neue oder unbehandelte Cursor-Modellbegriffe erkannt: \"{models}\". Falls diese wie neue Modelle aussehen, erstellen Sie bitte einen Bericht und reichen Sie ihn auf GitHub ein.",
     "usageBasedSpendingThreshold": "Nutzungsbasierte Ausgaben haben {percentage}% Ihres ${limit} Limits erreicht",
-    "failedToOpenSettings": "Fehler beim Öffnen der Cursor Stats-Einstellungen. Bitte versuchen Sie, die VS Code-Einstellungen manuell zu öffnen."
+    "failedToOpenSettings": "Fehler beim Öffnen der Cursor Stats-Einstellungen. Bitte versuchen Sie, die VS Code-Einstellungen manuell zu öffnen.",
+    "smartUsageMonitorAlert": "⚠️ Hohe Nutzung erkannt: {usageChange}% Anstieg in {timeMinutes} Minuten (Überwachung alle {interval} Anfragen)",
+    "smartUsageMonitorDetail": "Aktuelle Einstellungen: {threshold}% Nutzungsänderungsschwelle, Überprüfung alle {interval} Anfragen. Falls Sie nicht absichtlich viel KI verwendet haben, prüfen Sie, ob Sie das falsche Modell gewählt haben.",
+    "checkModelSettings": "Modelleinstellungen prüfen",
+    "adjustSettings": "Überwachungseinstellungen anpassen",
+    "checkCurrentModel": "💡 Bitte prüfen Sie, ob Sie das richtige KI-Modell gewählt haben. Versehentliche Auswahl eines verbrauchsintensiven Modells (wie GPT-4) könnte Ihr Kontingent schnell aufbrauchen."
   },
   "commands": {
     "refreshStats": "Cursor Stats: Statistiken aktualisieren",

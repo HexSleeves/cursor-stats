@@ -1,3 +1,11 @@
+/**
+ * 文件说明：通知与提示处理模块
+ * 新增内容：
+ *  - 最后五次（剩余≤5）区间内，在第一次（剩余=5）与最后一次（剩余=1/0）且使用百分比≥阈值时提示
+ *  - 阈值可配置（默认10%）
+ * 使用说明：调用 checkAndNotifyLastFiveUsage 于统计更新后触发
+ * @author SM
+ */
 import * as vscode from 'vscode';
 import { log } from '../utils/logger';
 import { convertAndFormatCurrency } from '../utils/currency';
@@ -11,6 +19,13 @@ const notifiedSpendingThresholds = new Set<number>();
 let isNotificationInProgress = false;
 let unpaidInvoiceNotifiedThisSession = false;
 let isSpendingCheckInitialRun = true; // New state variable for spending checks
+// 记录智能使用监控状态，避免重复弹窗
+let smartUsageMonitorData = {
+  lastCheckTime: 0,
+  lastUsageValue: 0,
+  checkCount: 0,
+  lastNotificationTime: 0
+};
 
 // Reset notification tracking
 export function resetNotifications() {
@@ -20,6 +35,13 @@ export function resetNotifications() {
   isNotificationInProgress = false;
   unpaidInvoiceNotifiedThisSession = false;
   isSpendingCheckInitialRun = true; // Reset this flag as well
+  // 重置智能使用监控状态
+  smartUsageMonitorData = {
+    lastCheckTime: 0,
+    lastUsageValue: 0,
+    checkCount: 0,
+    lastNotificationTime: 0
+  };
   log('[Notifications] Reset notification tracking, including spending check initial run flag.');
 }
 
@@ -261,5 +283,105 @@ export async function checkAndNotifyUsage(usageInfo: UsageInfo) {
     }
   } finally {
     isNotificationInProgress = false;
+  }
+}
+
+/**
+ * 智能使用监控功能：每N次查询剩余次数，检测短时间内大量使用的情况
+ * 核心逻辑：
+ *  - 每隔指定次数（默认5次）检查一次使用量变化
+ *  - 当前后两次检查间使用量变化超过设定百分比阈值时提醒用户可能选错模型
+ * 配置项：
+ *  - cursorStats.smartUsageMonitorEnabled: 启用/禁用功能（默认true）
+ *  - cursorStats.smartUsageMonitorInterval: 每几次查询检查一次（默认5）
+ *  - cursorStats.smartUsageMonitorThreshold: 使用变化百分比阈值（默认10）
+ * @param premiumCurrent 当前已用快速请求次数
+ * @param premiumLimit   每月快速请求总上限
+ */
+export async function checkAndNotifySmartUsageMonitor(
+  premiumCurrent: number,
+  premiumLimit: number,
+) {
+  try {
+    const config = vscode.workspace.getConfiguration('cursorStats');
+    const enabled = config.get<boolean>('smartUsageMonitorEnabled', true);
+    if (!enabled) return;
+
+    // 防御：无上限或数据无效时不检测
+    if (!premiumLimit || premiumLimit <= 0) return;
+
+    const checkInterval = Math.max(1, config.get<number>('smartUsageMonitorInterval', 5));
+    const usageThreshold = Math.max(0, Math.min(100, config.get<number>('smartUsageMonitorThreshold', 10)));
+    const currentTime = Date.now();
+    
+    // 增加检查计数
+    smartUsageMonitorData.checkCount++;
+    
+    // 每隔指定次数进行一次检查
+    if (smartUsageMonitorData.checkCount % checkInterval === 0) {
+      const currentUsagePercent = Math.max(0, Math.min(100, (premiumCurrent / premiumLimit) * 100));
+      
+      // 如果不是第一次检查
+      if (smartUsageMonitorData.lastCheckTime > 0) {
+        const timeSinceLastCheck = currentTime - smartUsageMonitorData.lastCheckTime;
+        const usageChange = currentUsagePercent - smartUsageMonitorData.lastUsageValue;
+        
+        // 检查是否在短时间内（5分钟内）使用量增长超过阈值
+        const isShortTime = timeSinceLastCheck < 5 * 60 * 1000; // 5分钟
+        const isHighUsageIncrease = usageChange >= usageThreshold;
+        
+        // 避免频繁弹窗：距离上次通知至少10分钟
+        const timeSinceLastNotification = currentTime - smartUsageMonitorData.lastNotificationTime;
+        const canShowNotification = timeSinceLastNotification > 10 * 60 * 1000; // 10分钟
+        
+        log(`[Smart Usage Monitor] Check ${smartUsageMonitorData.checkCount}: usage change ${usageChange.toFixed(1)}% in ${(timeSinceLastCheck/1000/60).toFixed(1)} minutes`);
+        
+        if (isShortTime && isHighUsageIncrease && canShowNotification) {
+          const timeMinutes = Math.round(timeSinceLastCheck / 1000 / 60);
+          const msg = t('notifications.smartUsageMonitorAlert', {
+            usageChange: usageChange.toFixed(1),
+            timeMinutes: timeMinutes,
+            interval: checkInterval,
+          });
+          
+          const selection = await vscode.window.showWarningMessage(
+            msg,
+            { 
+              modal: false, 
+              detail: t('notifications.smartUsageMonitorDetail', {
+                threshold: usageThreshold,
+                interval: checkInterval
+              })
+            },
+            t('notifications.checkModelSettings'),
+            t('notifications.adjustSettings'),
+            t('notifications.dismiss'),
+          );
+          
+          if (selection === t('notifications.checkModelSettings')) {
+            // 提示用户检查当前选择的模型
+            vscode.window.showInformationMessage(
+              t('notifications.checkCurrentModel'),
+              t('notifications.dismiss')
+            );
+          } else if (selection === t('notifications.adjustSettings')) {
+            try {
+              await vscode.commands.executeCommand('workbench.action.openSettings', '@ext:Dwtexe.cursor-stats');
+            } catch (error) {
+              log('[Notifications] Failed to open settings for smart usage monitor', true);
+            }
+          }
+          
+          smartUsageMonitorData.lastNotificationTime = currentTime;
+          log(`[Smart Usage Monitor] Notification shown: ${usageChange.toFixed(1)}% increase in ${timeMinutes} minutes`);
+        }
+      }
+      
+      // 更新检查数据
+      smartUsageMonitorData.lastCheckTime = currentTime;
+      smartUsageMonitorData.lastUsageValue = currentUsagePercent;
+    }
+  } catch (error) {
+    log('[Notifications] Error in checkAndNotifySmartUsageMonitor: ' + (error as Error).message, true);
   }
 }

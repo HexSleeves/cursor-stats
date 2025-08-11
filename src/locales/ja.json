@@ -104,7 +104,12 @@
     "dismiss": "閉じる",
     "unknownModelsDetected": "新規または未対応のCursorモデル用語が検出されました：\"{models}\"。新しいモデルの場合は、レポートを作成してGitHubに提出してください。",
     "usageBasedSpendingThreshold": "使用量ベースの支出が${limit}の制限の{percentage}%に達しました",
-    "failedToOpenSettings": "Cursor Statsの設定を開けませんでした。VS Codeの設定を手動で開いてみてください。"
+    "failedToOpenSettings": "Cursor Statsの設定を開けませんでした。VS Codeの設定を手動で開いてみてください。",
+    "smartUsageMonitorAlert": "⚠️ High usage detected: {usageChange}% increase in {timeMinutes} minutes (monitoring every {interval} queries)",
+    "smartUsageMonitorDetail": "Current settings: {threshold}% usage change threshold, checking every {interval} queries. If you didn't intentionally use AI heavily, check if you selected the wrong model.",
+    "checkModelSettings": "Check Model Settings",
+    "adjustSettings": "Adjust Monitor Settings",
+    "checkCurrentModel": "💡 Please check if you've selected the correct AI model. Accidentally choosing a high-consumption model (like GPT-4) could quickly drain your quota."
   },
   "commands": {
     "refreshStats": "Cursor Stats: 統計を更新",

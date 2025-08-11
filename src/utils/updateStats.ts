@@ -1,7 +1,15 @@
+/**
+ * 文件说明：负责拉取 Cursor 使用统计并更新状态栏显示文本
+ * 变更内容：在状态栏的“已用/总数”后追加“剩余XX%”文案
+ * 注意事项：
+ * 1. 当 limit 为 0 或无效时，剩余百分比显示为 0%
+ * 2. 保持现有颜色与提示逻辑不变，仅扩展文本展示
+ * @author SM
+ */
 import { log } from './logger';
 import { getCursorTokenFromDB } from '../services/database';
 import { checkUsageBasedStatus, fetchCursorStats } from '../services/api';
-import { checkAndNotifyUsage, checkAndNotifySpending, checkAndNotifyUnpaidInvoice } from '../handlers/notifications';
+import { checkAndNotifyUsage, checkAndNotifySpending, checkAndNotifyUnpaidInvoice, checkAndNotifySmartUsageMonitor } from '../handlers/notifications';
 import { 
     startRefreshInterval,
     getCooldownStartTime,
@@ -21,6 +29,10 @@ import { CursorUsageResponse } from '../interfaces/types';
 let unknownModelNotificationShown = false;
 let detectedUnknownModels: Set<string> = new Set();
 
+/**
+ * 更新状态栏统计信息
+ * @param statusBarItem VS Code 状态栏项实例
+ */
 export async function updateStats(statusBarItem: vscode.StatusBarItem) {
     try {
         log('[Stats] ' +"=".repeat(100));
@@ -73,8 +85,12 @@ export async function updateStats(statusBarItem: vscode.StatusBarItem) {
         
         let costText = '';
         
-        // Calculate usage percentages
+        // 计算使用百分比（已使用）
         const premiumPercent = Math.round((stats.premiumRequests.current / stats.premiumRequests.limit) * 100);
+        // 计算剩余百分比：边界保护，避免负值或超过 100
+        const remainingPercent = stats.premiumRequests.limit > 0
+            ? Math.max(0, Math.min(100, 100 - premiumPercent))
+            : 0;
         let usageBasedPercent = 0;
         let totalUsageText = '';
 
@@ -106,10 +122,11 @@ export async function updateStats(statusBarItem: vscode.StatusBarItem) {
             const formattedActualCost = await convertAndFormatCurrency(actualTotalCost);
             costText = ` $(credit-card) ${formattedActualCost}`;
 
-            // Status bar should only show premium requests count, not total
-            totalUsageText = ` ${stats.premiumRequests.current}/${stats.premiumRequests.limit}${costText}`;
+            // 状态栏展示：已用/总数 + 剩余百分比 +（可选）费用
+            totalUsageText = ` ${stats.premiumRequests.current}/${stats.premiumRequests.limit} ${t('statusBar.remaining')}${remainingPercent}%${costText}`;
         } else {
-            totalUsageText = ` ${stats.premiumRequests.current}/${stats.premiumRequests.limit}`;
+            // 当无使用量计费条目时，仅展示计数与剩余百分比
+            totalUsageText = ` ${stats.premiumRequests.current}/${stats.premiumRequests.limit} ${t('statusBar.remaining')}${remainingPercent}%`;
         }
 
         // Set status bar color based on usage type
@@ -534,6 +551,11 @@ export async function updateStats(statusBarItem: vscode.StatusBarItem) {
                 if (activeMonthData.usageBasedPricing.hasUnpaidMidMonthInvoice) {
                     checkAndNotifyUnpaidInvoice(token);
                 }
+            // 智能使用监控提醒（独立于 usage-based）
+            checkAndNotifySmartUsageMonitor(
+              stats.premiumRequests.current,
+              stats.premiumRequests.limit
+            );
             }, 1000);
         } else {
             setTimeout(() => {
@@ -541,6 +563,11 @@ export async function updateStats(statusBarItem: vscode.StatusBarItem) {
                     percentage: premiumPercent,
                     type: 'premium'
                 });
+            // 智能使用监控提醒（仅依赖 premium 配额）
+            checkAndNotifySmartUsageMonitor(
+              stats.premiumRequests.current,
+              stats.premiumRequests.limit
+            );
             }, 1000);
         }
 

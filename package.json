@@ -2,7 +2,7 @@
   "name": "cursor-stats",
   "displayName": "Cursor Stats",
   "description": "A Cursor extension for monitoring usage.",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "publisher": "Dwtexe",
   "icon": "images/icon.png",
   "repository": {
@@ -366,6 +366,29 @@
             "type": "boolean",
             "default": true,
             "description": "Show changelog popup and update notifications when the extension is updated to a new version.",
+            "scope": "window"
+          }
+          ,
+          "cursorStats.smartUsageMonitorEnabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable smart usage monitoring to detect potential model misselection based on usage patterns.",
+            "scope": "window"
+          },
+          "cursorStats.smartUsageMonitorInterval": {
+            "type": "number",
+            "default": 5,
+            "minimum": 1,
+            "maximum": 50,
+            "description": "Check usage every N queries to monitor for rapid consumption patterns (1-50).",
+            "scope": "window"
+          },
+          "cursorStats.smartUsageMonitorThreshold": {
+            "type": "number",
+            "default": 10,
+            "minimum": 1,
+            "maximum": 50,
+            "description": "Usage percentage threshold (1-50%). Alert when usage increases by this amount or more in a short time.",
             "scope": "window"
           }
         }

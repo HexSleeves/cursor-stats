@@ -104,7 +104,12 @@
     "dismiss": "Dismiss",
     "unknownModelsDetected": "New or unhandled Cursor model terms detected: \"{models}\". If these seem like new models, please create a report and submit it on GitHub.",
     "usageBasedSpendingThreshold": "Usage-based spending has reached {percentage}% of your ${limit} limit",
-    "failedToOpenSettings": "Failed to open Cursor Stats settings. Please try opening VS Code settings manually."
+    "failedToOpenSettings": "Failed to open Cursor Stats settings. Please try opening VS Code settings manually.",
+    "smartUsageMonitorAlert": "⚠️ High usage detected: {usageChange}% increase in {timeMinutes} minutes (monitoring every {interval} queries)",
+    "smartUsageMonitorDetail": "Current settings: {threshold}% usage change threshold, checking every {interval} queries. If you didn't intentionally use AI heavily, check if you selected the wrong model.",
+    "checkModelSettings": "Check Model Settings",
+    "adjustSettings": "Adjust Monitor Settings",
+    "checkCurrentModel": "💡 Please check if you've selected the correct AI model. Accidentally choosing a high-consumption model (like GPT-4) could quickly drain your quota."
   },
   "commands": {
     "refreshStats": "Cursor Stats: Refresh Statistics",

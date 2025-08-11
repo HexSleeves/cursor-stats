@@ -80,7 +80,12 @@
     "dismiss": "닫기",
     "unknownModelsDetected": "새롭거나 처리되지 않은 Cursor 모델 용어가 감지되었습니다: \"{models}\". 새로운 모델인 것 같으면 리포트를 생성하여 GitHub에 제출해 주세요",
     "usageBasedSpendingThreshold": "사용량 기반 지출이 ${limit} 한도의 {percentage}%에 도달했습니다",
-    "failedToOpenSettings": "Cursor Stats 설정을 열지 못했습니다. VS Code 설정을 수동으로 열어보세요"
+    "failedToOpenSettings": "Cursor Stats 설정을 열지 못했습니다. VS Code 설정을 수동으로 열어보세요",
+    "smartUsageMonitorAlert": "⚠️ High usage detected: {usageChange}% increase in {timeMinutes} minutes (monitoring every {interval} queries)",
+    "smartUsageMonitorDetail": "Current settings: {threshold}% usage change threshold, checking every {interval} queries. If you didn't intentionally use AI heavily, check if you selected the wrong model.",
+    "checkModelSettings": "Check Model Settings",
+    "adjustSettings": "Adjust Monitor Settings",
+    "checkCurrentModel": "💡 Please check if you've selected the correct AI model. Accidentally choosing a high-consumption model (like GPT-4) could quickly drain your quota."
   },
   "commands": {
     "refreshStats": "Cursor Stats: 통계 새로고침",

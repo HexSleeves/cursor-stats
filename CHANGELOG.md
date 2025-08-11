@@ -2,6 +2,22 @@
 
 All notable changes to the "cursor-stats" extension will be documented in this file.
 
+## [1.1.7] - 2025-08-11
+
+### Added
+- 状态栏文本新增“剩余百分比”展示：在“已用/总数”后显示“剩余XX%”。
+- 新增"智能使用监控"功能：每N次查询检测短时间内大量使用AI的情况，提醒用户可能选错模型。
+  - 可通过设置启用/禁用：`cursorStats.smartUsageMonitorEnabled`（默认启用）
+  - 可配置查询间隔次数：`cursorStats.smartUsageMonitorInterval`（默认每5次查询检查一次）
+  - 可配置使用变化百分比阈值：`cursorStats.smartUsageMonitorThreshold`（默认10%）
+  - 当在短时间内（5分钟）使用量增长超过阈值时会弹出提醒，避免频繁弹窗（至少10分钟间隔）
+
+### Changed
+- 本地化：为新提醒增加多语言键（中/英/日/韩/俄/德/哈）。
+
+### Fixed
+- 无（本版本为功能与UI增强）。
+
 ## [1.1.5] - 2025-07-03
 
 ### Added

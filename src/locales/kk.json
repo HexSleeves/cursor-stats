@@ -104,7 +104,12 @@
     "dismiss": "Жабу",
     "unknownModelsDetected": "Жаңа немесе өңделмеген Cursor модель терминдері анықталды: \"{models}\". Егер бұлар жаңа модельдер сияқты болса, есеп жасап GitHub-қа жіберіңіз.",
     "usageBasedSpendingThreshold": "Пайдалану негізіндегі шығын сіздің ${limit} шектеуіңіздің {percentage}%-ына жетті",
-    "failedToOpenSettings": "Cursor Stats параметрлерін ашу сәтсіз. VS Code параметрлерін қолмен ашып көріңіз."
+    "failedToOpenSettings": "Cursor Stats параметрлерін ашу сәтсіз. VS Code параметрлерін қолмен ашып көріңіз.",
+    "smartUsageMonitorAlert": "⚠️ High usage detected: {usageChange}% increase in {timeMinutes} minutes (monitoring every {interval} queries)",
+    "smartUsageMonitorDetail": "Current settings: {threshold}% usage change threshold, checking every {interval} queries. If you didn't intentionally use AI heavily, check if you selected the wrong model.",
+    "checkModelSettings": "Check Model Settings",
+    "adjustSettings": "Adjust Monitor Settings",
+    "checkCurrentModel": "💡 Please check if you've selected the correct AI model. Accidentally choosing a high-consumption model (like GPT-4) could quickly drain your quota."
   },
   "commands": {
     "refreshStats": "Cursor Stats: Статистиканы Жаңарту",

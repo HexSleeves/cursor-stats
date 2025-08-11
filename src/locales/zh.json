@@ -80,7 +80,12 @@
     "dismiss": "关闭",
     "unknownModelsDetected": "检测到新的或未处理的 Cursor 模型术语：\"{models}\"。如果这些是新模型，请创建报告并提交到 GitHub。",
     "usageBasedSpendingThreshold": "基于使用量的支出已达到您的 ${limit} 限额的 {percentage}%",
-    "failedToOpenSettings": "无法打开 Cursor Stats 设置。请尝试手动打开 VS Code 设置。"
+    "failedToOpenSettings": "无法打开 Cursor Stats 设置。请尝试手动打开 VS Code 设置。",
+    "smartUsageMonitorAlert": "⚠️ 检测到短时间大量使用：{timeMinutes}分钟内使用量增长 {usageChange}%（每{interval}次查询监控一次）",
+    "smartUsageMonitorDetail": "当前设置：使用量变化阈值 {threshold}%，每 {interval} 次查询检查一次。如果您没有故意大量使用AI功能，建议检查是否选错了模型。",
+    "checkModelSettings": "检查模型设置",
+    "adjustSettings": "调整监控设置",
+    "checkCurrentModel": "💡 建议检查当前选择的AI模型是否正确。如果意外选择了高消耗模型（如GPT-4），可能会快速消耗配额。"
   },
   "commands": {
     "refreshStats": "Cursor Stats: 刷新统计",
