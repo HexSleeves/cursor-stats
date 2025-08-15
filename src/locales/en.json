@@ -60,6 +60,13 @@
       "october": "October",
       "november": "November",
       "december": "December"
+    },
+    "remainingDays": {
+      "expired": "Expired",
+      "oneDay": "1 day",
+      "multipleDays": "{days} days",
+      "label": "Remaining",
+      "short": "{days} days left"
     }
   },
   "progressBar": {
@@ -162,7 +169,9 @@
     "invalidLimit": "Please enter a valid number greater than 0",
     "limitUpdated": "Usage limit updated successfully to ${limit}",
     "signInRequired": "Please sign in to Cursor first",
-    "updateFailed": "Failed to update usage limit"
+    "updateFailed": "Failed to update usage limit",
+    "showRemainingDays": "Show Remaining Days",
+    "showRemainingDaysDescription": "Display remaining days until period end in status bar and tooltip"
   },
   "errors": {
     "tokenNotFound": "Session token not found. Please sign in to Cursor.",

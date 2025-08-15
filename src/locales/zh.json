@@ -60,6 +60,13 @@
       "october": "10月",
       "november": "11月",
       "december": "12月"
+    },
+    "remainingDays": {
+      "expired": "已过期",
+      "oneDay": "1天",
+      "multipleDays": "{days}天",
+      "label": "剩余",
+      "short": "剩余{days}天"
     }
   },
   "notifications": {
@@ -138,7 +145,9 @@
     "invalidLimit": "请输入大于 0 的有效数字",
     "limitUpdated": "使用限制已成功更新至 ${limit}",
     "signInRequired": "请先登录 Cursor",
-    "updateFailed": "更新使用限制失败"
+    "updateFailed": "更新使用限制失败",
+    "showRemainingDays": "显示剩余天数",
+    "showRemainingDaysDescription": "在状态栏和工具提示中显示周期结束前的剩余天数"
   },
   "errors": {
     "tokenNotFound": "未找到会话令牌，请登录 Cursor。",

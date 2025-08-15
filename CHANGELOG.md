@@ -2,6 +2,26 @@
 
 All notable changes to the "cursor-stats" extension will be documented in this file.
 
+## [1.1.8] - 2025-01-27
+
+### Added
+- ⏱️ **Remaining Days Feature**: Display remaining days until period end in status bar
+  - Status bar format: `Used/Total Remaining XX% 📅X days`
+  - Detailed remaining days information in tooltip
+  - Different icons based on urgency: 📅 normal, 🟡 warning (≤7 days), 🔴 critical (≤3 days), ⏰ expired
+  - Supports cross-year date calculation and multi-language month parsing
+- ⚙️ **Configuration Toggle**: New `cursorStats.showRemainingDays` setting
+  - Enabled by default, users can freely enable/disable in settings
+  - Affects remaining days display in both status bar and tooltip
+
+### Changed
+- Enhanced internationalization support with Chinese and English text for remaining days feature
+
+### Technical Improvements
+- Added `src/utils/remainingDays.ts` utility module for comprehensive remaining days calculation
+- Optimized conditional display logic for status bar and tooltip
+- Enhanced error handling and boundary protection
+
 ## [1.1.7] - 2025-08-11
 
 ### Added

@@ -1,3 +1,11 @@
+/**
+ * @author SM
+ * 团队服务：包含团队成员检测、团队支出获取与个人支出提取等能力。
+ * 本次编辑：
+ * 1) 为 getTeamSpend 增强诊断日志，输出 error.code / error.message / 是否为网络级错误等信息；
+ * 2) 增加请求超时，避免长时间悬挂；
+ * 3) 在发起请求前输出请求体与关键请求头存在性（不含敏感值）。
+ */
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -156,15 +164,35 @@ export async function checkTeamMembership(token: string, context: vscode.Extensi
     }
 }
 
+/**
+ * 获取团队支出数据
+ * @param token WorkosCursorSessionToken（包含 userId%3A%3AJWT）
+ * @param teamId 团队ID
+ * @returns 团队支出响应
+ */
 export async function getTeamSpend(token: string, teamId: number): Promise<TeamSpendResponse> {
     try {
+        // 生成请求头并输出关键信息（不打印敏感值）
+        const headers = createCursorHeaders(token, true);
         log('[Team] Making request to get team spend');
-        const response = await axios.post<TeamSpendResponse>('https://cursor.com/api/dashboard/get-team-spend', 
-            { teamId }, // Include teamId in request body
+        log('[Team] Team spend request preflight', {
+            teamId,
+            headersSanity: {
+                hasCookie: Boolean(headers['Cookie']),
+                hasOrigin: Boolean(headers['Origin']),
+                contentType: headers['Content-Type']
+            }
+        });
+
+        const response = await axios.post<TeamSpendResponse>(
+            'https://cursor.com/api/dashboard/get-team-spend',
+            { teamId },
             {
-                headers: createCursorHeaders(token, true)
+                headers,
+                timeout: 15000 // 增加超时，避免网络级长时间悬挂
             }
         );
+
         log('[Team] Team spend response', {
             memberCount: response.data.teamMemberSpend.length,
             totalMembers: response.data.totalMembers,
@@ -180,8 +208,14 @@ export async function getTeamSpend(token: string, teamId: number): Promise<TeamS
             headers: error.response?.headers,
             config: {
                 url: error.config?.url,
-                method: error.config?.method
+                method: error.config?.method,
+                timeout: error.config?.timeout
             },
+            code: error.code,
+            message: error.message,
+            hasResponse: Boolean(error.response),
+            hasRequest: Boolean(error.request),
+            isNetworkLevelError: !error?.response && Boolean(error?.request),
             isOriginError: error.response?.data?.error === 'Invalid origin for state-changing request'
         }, true);
         throw enhancedError;

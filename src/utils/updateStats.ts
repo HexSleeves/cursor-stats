@@ -14,6 +14,7 @@ import { getCursorTokenFromDB } from '../services/database';
 import { checkUsageBasedStatus, fetchCursorStats } from '../services/api';
 import { checkAndNotifyUsage, checkAndNotifySpending, checkAndNotifyUnpaidInvoice, checkAndNotifySmartUsageMonitor } from '../handlers/notifications';
 import { formatRemainingPercentage, formatPercentageIntelligent } from './percentageFormatter';
+import { calculateRemainingDaysFromPeriod, formatRemainingDaysText, getRemainingDaysIcon, shouldShowRemainingDays } from './remainingDays';
 import { 
     startRefreshInterval,
     getCooldownStartTime,
@@ -94,6 +95,45 @@ export async function updateStats(statusBarItem: vscode.StatusBarItem) {
         const premiumPercent = Math.round(premiumPercentExact);
         // 计算剩余百分比：边界保护，避免负值或超过 100，智能保留小数位数（最多3位）
         const remainingPercent = formatRemainingPercentage(stats.premiumRequests.current, stats.premiumRequests.limit);
+        
+        // 计算快速请求周期的剩余天数（仅在启用时）
+        let remainingDays = 0;
+        let remainingDaysText = '';
+        let remainingDaysIcon = '';
+        let formatDateWithMonthName: ((date: Date) => string) | null = null;
+        
+        if (shouldShowRemainingDays()) {
+            const startDate = new Date(stats.premiumRequests.startOfMonth);
+            const endDate = new Date(startDate);
+            endDate.setMonth(endDate.getMonth() + 1);
+            
+            // 定义日期格式化函数
+            formatDateWithMonthName = (date: Date) => {
+                const day = date.getDate();
+                const monthNames = [
+                    t('statusBar.months.january'),
+                    t('statusBar.months.february'),
+                    t('statusBar.months.march'),
+                    t('statusBar.months.april'),
+                    t('statusBar.months.may'),
+                    t('statusBar.months.june'),
+                    t('statusBar.months.july'),
+                    t('statusBar.months.august'),
+                    t('statusBar.months.september'),
+                    t('statusBar.months.october'),
+                    t('statusBar.months.november'),
+                    t('statusBar.months.december')
+                ];
+                const monthName = monthNames[date.getMonth()];
+                return `${day} ${monthName}`;
+            };
+            
+            const periodInfo = `${formatDateWithMonthName(startDate)} - ${formatDateWithMonthName(endDate)}`;
+            remainingDays = calculateRemainingDaysFromPeriod(periodInfo);
+            remainingDaysText = formatRemainingDaysText(remainingDays);
+            remainingDaysIcon = getRemainingDaysIcon(remainingDays);
+        }
+        
         let usageBasedPercent = 0;
         let totalUsageText = '';
 
@@ -125,11 +165,13 @@ export async function updateStats(statusBarItem: vscode.StatusBarItem) {
             const formattedActualCost = await convertAndFormatCurrency(actualTotalCost);
             costText = ` $(credit-card) ${formattedActualCost}`;
 
-            // 状态栏展示：已用/总数 + 剩余百分比 +（可选）费用
-            totalUsageText = ` ${stats.premiumRequests.current}/${stats.premiumRequests.limit} ${t('statusBar.remaining')}${remainingPercent}%${costText}`;
+            // 状态栏展示：已用/总数 + 剩余百分比 + （可选）剩余天数 +（可选）费用
+            const remainingDaysPart = shouldShowRemainingDays() ? ` ${remainingDaysIcon}${remainingDaysText}` : '';
+            totalUsageText = ` ${stats.premiumRequests.current}/${stats.premiumRequests.limit} ${t('statusBar.remaining')}${remainingPercent}%${remainingDaysPart}${costText}`;
         } else {
-            // 当无使用量计费条目时，仅展示计数与剩余百分比
-            totalUsageText = ` ${stats.premiumRequests.current}/${stats.premiumRequests.limit} ${t('statusBar.remaining')}${remainingPercent}%`;
+            // 当无使用量计费条目时，仅展示计数与剩余百分比和（可选）剩余天数
+            const remainingDaysPart = shouldShowRemainingDays() ? ` ${remainingDaysIcon}${remainingDaysText}` : '';
+            totalUsageText = ` ${stats.premiumRequests.current}/${stats.premiumRequests.limit} ${t('statusBar.remaining')}${remainingPercent}%${remainingDaysPart}`;
         }
 
         // Set status bar color based on usage type
@@ -162,36 +204,54 @@ export async function updateStats(statusBarItem: vscode.StatusBarItem) {
         
         // Format premium requests progress with fixed decimal places
         const premiumPercentFormatted = Math.round(premiumPercent);
-        const startDate = new Date(stats.premiumRequests.startOfMonth);
-        const endDate = new Date(startDate);
-        endDate.setMonth(endDate.getMonth() + 1);
 
-        const formatDateWithMonthName = (date: Date) => {
-            const day = date.getDate();
-            const monthNames = [
-                t('statusBar.months.january'),
-                t('statusBar.months.february'),
-                t('statusBar.months.march'),
-                t('statusBar.months.april'),
-                t('statusBar.months.may'),
-                t('statusBar.months.june'),
-                t('statusBar.months.july'),
-                t('statusBar.months.august'),
-                t('statusBar.months.september'),
-                t('statusBar.months.october'),
-                t('statusBar.months.november'),
-                t('statusBar.months.december')
-            ];
-            const monthName = monthNames[date.getMonth()];
-            return `${day} ${monthName}`;
-        };
+        // 需要处理 formatDateWithMonthName 为 null 的情况
+        let periodDateText = '';
+        if (formatDateWithMonthName) {
+            const startDate = new Date(stats.premiumRequests.startOfMonth);
+            const endDate = new Date(startDate);
+            endDate.setMonth(endDate.getMonth() + 1);
+            periodDateText = `${formatDateWithMonthName(startDate)} - ${formatDateWithMonthName(endDate)}`;
+        } else {
+            // 如果剩余天数功能被关闭，仍需要显示日期，创建临时函数
+            const tempFormatDate = (date: Date) => {
+                const day = date.getDate();
+                const monthNames = [
+                    t('statusBar.months.january'),
+                    t('statusBar.months.february'),
+                    t('statusBar.months.march'),
+                    t('statusBar.months.april'),
+                    t('statusBar.months.may'),
+                    t('statusBar.months.june'),
+                    t('statusBar.months.july'),
+                    t('statusBar.months.august'),
+                    t('statusBar.months.september'),
+                    t('statusBar.months.october'),
+                    t('statusBar.months.november'),
+                    t('statusBar.months.december')
+                ];
+                const monthName = monthNames[date.getMonth()];
+                return `${day} ${monthName}`;
+            };
+            const startDate = new Date(stats.premiumRequests.startOfMonth);
+            const endDate = new Date(startDate);
+            endDate.setMonth(endDate.getMonth() + 1);
+            periodDateText = `${tempFormatDate(startDate)} - ${tempFormatDate(endDate)}`;
+        }
 
-        contentLines.push(
+        const premiumTooltipLines = [
             formatTooltipLine(`   • ${stats.premiumRequests.current}/${stats.premiumRequests.limit} ${t('statusBar.requestsUsed')}`),
             formatTooltipLine(`   📊 ${premiumPercentFormatted}% ${t('statusBar.utilized')}`),
-            formatTooltipLine(`   ${t('statusBar.fastRequestsPeriod')}: ${formatDateWithMonthName(startDate)} - ${formatDateWithMonthName(endDate)}`),
-            ''
-        );
+            formatTooltipLine(`   ${t('statusBar.fastRequestsPeriod')}: ${periodDateText}`)
+        ];
+
+        // 仅在启用时添加剩余天数行
+        if (shouldShowRemainingDays()) {
+            premiumTooltipLines.push(formatTooltipLine(`   ${remainingDaysIcon} ${t('statusBar.remainingDays.label')}: ${remainingDaysText}`));
+        }
+
+        premiumTooltipLines.push('');
+        contentLines.push(...premiumTooltipLines);
 
         // Add detailed model usage breakdown if available
         try {
@@ -301,8 +361,29 @@ export async function updateStats(statusBarItem: vscode.StatusBarItem) {
                 periodEnd.setFullYear(periodEnd.getFullYear() + 1);
             }
             
+            // 使用安全的日期格式化函数
+            const safeDateFormatter = formatDateWithMonthName || ((date: Date) => {
+                const day = date.getDate();
+                const monthNames = [
+                    t('statusBar.months.january'),
+                    t('statusBar.months.february'),
+                    t('statusBar.months.march'),
+                    t('statusBar.months.april'),
+                    t('statusBar.months.may'),
+                    t('statusBar.months.june'),
+                    t('statusBar.months.july'),
+                    t('statusBar.months.august'),
+                    t('statusBar.months.september'),
+                    t('statusBar.months.october'),
+                    t('statusBar.months.november'),
+                    t('statusBar.months.december')
+                ];
+                const monthName = monthNames[date.getMonth()];
+                return `${day} ${monthName}`;
+            });
+            
             contentLines.push(
-                formatTooltipLine(`   ${t('statusBar.usageBasedPeriod')}: ${formatDateWithMonthName(periodStart)} - ${formatDateWithMonthName(periodEnd)}`),
+                formatTooltipLine(`   ${t('statusBar.usageBasedPeriod')}: ${safeDateFormatter(periodStart)} - ${safeDateFormatter(periodEnd)}`),
             );
             
             // Calculate unpaid amount correctly
