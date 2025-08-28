@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { CursorStats, UsageLimitResponse, ExtendedAxiosError, UsageItem, CursorUsageResponse } from '../interfaces/types';
+import { CursorStats, UsageLimitResponse, ExtendedAxiosError, UsageItem, CursorUsageResponse, TokenUsageResponse } from '../interfaces/types';
 import { log } from '../utils/logger';
 import { checkTeamMembership, getTeamSpend, extractUserSpend } from './team';
 import { getExtensionContext } from '../extension';
@@ -433,6 +433,65 @@ export async function getStripeSessionUrl(token: string): Promise<string> {
         return response.data.replace(/"/g, '');
     } catch (error: any) {
         log('[API] Error getting Stripe session URL: ' + error.message, true);
+        throw error;
+    }
+}
+
+/**
+ * 获取Token使用统计信息
+ * @author SM
+ * @param token 认证令牌
+ * @param teamId 团队ID，默认为-1
+ * @returns Token使用统计响应数据
+ */
+export async function fetchTokenUsageStats(token: string, teamId?: number): Promise<TokenUsageResponse> {
+    try {
+        log('[API] Fetching token usage stats...');
+        
+        // 首先获取基础使用数据来获取 startOfMonth
+        const userId = token.split('%3A%3A')[0];
+        const usageResponse = await axios.get<CursorUsageResponse>('https://cursor.com/api/usage', {
+            params: { user: userId },
+            headers: createCursorHeaders(token, false)
+        });
+        
+        // 获取 startOfMonth 并转换为时间戳
+        const startOfMonth = usageResponse.data.startOfMonth;
+        const startDate = new Date(startOfMonth);
+        const startTimestamp = startDate.getTime();
+        
+        // 计算结束时间（往后推一个月）
+        const endDate = new Date(startDate);
+        endDate.setMonth(endDate.getMonth() + 1);
+        const endTimestamp = endDate.getTime();
+        
+        log(`[API] Token usage date range: ${startOfMonth} (${startTimestamp}) to ${endDate.toISOString()} (${endTimestamp})`);
+        
+        // 构建请求参数
+        const requestPayload = {
+            teamId: teamId || -1,
+            startDate: startTimestamp,
+            endDate: endTimestamp
+        };
+        
+        log('[API] Token usage request payload:', requestPayload);
+        
+        const response = await axios.post<TokenUsageResponse>('https://cursor.com/api/dashboard/get-aggregated-usage-events', 
+            requestPayload,
+            {
+                headers: createCursorHeaders(token, true)
+            }
+        );
+        
+        log(`[API] Token usage stats response: totalCostCents=${response.data.totalCostCents}, aggregations=${response.data.aggregations.length}`);
+        return response.data;
+    } catch (error: any) {
+        log('[API] Error fetching token usage stats: ' + error.message, true);
+        log('[API] Token usage API error details: ' + JSON.stringify({
+            status: error.response?.status,
+            data: error.response?.data,
+            message: error.message
+        }), true);
         throw error;
     }
 } 

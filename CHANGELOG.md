@@ -2,6 +2,39 @@
 
 All notable changes to the "cursor-stats" extension will be documented in this file.
 
+## [1.2.0] - 2025-01-28
+
+### Added
+- 💳 **Token Display Mode**: New display mode showing token usage cost instead of request count
+  - Toggle between "Classic Mode" (request count) and "Token Mode" (cost in USD)
+  - Status bar format in Token Mode: `$X.XX/$Y.YY Remaining ZZ%`
+  - Detailed token breakdown in tooltip with model-specific usage and costs
+- ⚙️ **New Configuration Settings**:
+  - `cursorStats.displayMode`: Choose between "classic" and "token" display modes
+  - `cursorStats.tokenMaxAmount`: Set maximum token usage amount (1-1000 USD) for percentage calculation
+- 🔄 **Quick Mode Switching**: New command `cursor-stats.switchDisplayMode` for instant mode switching
+  - Accessible via Command Palette (Ctrl+Shift+P)
+  - Shows current mode and provides descriptions for each option
+
+### Enhanced
+- 🌐 **Token API Integration**: 
+  - Calls `https://cursor.com/api/dashboard/get-aggregated-usage-events` for real-time token usage data
+  - Supports team-based token usage tracking with proper date range filtering
+  - Automatic conversion from cents to USD with precise formatting
+- 🎨 **Status Bar Improvements**:
+  - Token mode uses the same color-coding system based on usage percentage
+  - Intelligent fallback to classic mode if token API fails
+  - Enhanced tooltip with comprehensive token statistics including input/output/cache tokens
+
+### Internationalization
+- Added Chinese and English translations for all new token-related features
+- New translation keys: `tokenUsageStats`, `totalTokens`, `inputTokens`, `outputTokens`, `cacheRead`, `cacheWrite`
+
+### Technical Improvements
+- Enhanced API error handling with detailed logging for token usage endpoints
+- Improved TypeScript interfaces with `TokenUsageResponse` and `TokenUsageAggregation` types
+- Optimized team membership detection for accurate token usage reporting
+
 ## [1.1.8] - 2025-01-27
 
 ### Added

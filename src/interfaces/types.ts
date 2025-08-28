@@ -146,6 +146,24 @@ export interface CursorUsageResponse {
   startOfMonth: string;
 }
 
+export interface TokenUsageAggregation {
+  modelIntent: string;
+  inputTokens: string;
+  outputTokens: string;
+  cacheWriteTokens: string;
+  cacheReadTokens: string;
+  totalCents: number;
+}
+
+export interface TokenUsageResponse {
+  aggregations: TokenUsageAggregation[];
+  totalInputTokens: string;
+  totalOutputTokens: string;
+  totalCacheWriteTokens: string;
+  totalCacheReadTokens: string;
+  totalCostCents: number;
+}
+
 export interface TeamInfo {
   teams: Team[];
 }

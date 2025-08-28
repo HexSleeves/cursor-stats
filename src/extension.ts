@@ -365,6 +365,52 @@ export async function activate(context: vscode.ExtensionContext) {
           log(`[Command] Language changed to: ${selectedLanguage.value}`);
         }
       }),
+      vscode.commands.registerCommand('cursor-stats.switchDisplayMode', async () => {
+        log('[Command] Switching display mode...');
+        const config = vscode.workspace.getConfiguration('cursorStats');
+        const currentMode = config.get<string>('displayMode', 'classic');
+        
+        const displayModes = [
+          { 
+            label: '📊 Classic Mode', 
+            description: 'Display request count (e.g., 0/500)',
+            value: 'classic' 
+          },
+          { 
+            label: '💳 Token Mode', 
+            description: 'Display token usage cost in USD',
+            value: 'token' 
+          }
+        ];
+
+        const selectedMode = await vscode.window.showQuickPick(
+          displayModes.map((mode) => ({
+            label: mode.label,
+            description: `${mode.description}${mode.value === currentMode ? ' (Current)' : ''}`,
+            value: mode.value,
+          })),
+          {
+            placeHolder: `Current: ${currentMode === 'classic' ? 'Classic Mode' : 'Token Mode'}. Select display mode`,
+            title: 'Cursor Stats: Select Display Mode',
+          },
+        );
+
+        if (selectedMode && selectedMode.value !== currentMode) {
+          await config.update(
+            'displayMode',
+            selectedMode.value,
+            vscode.ConfigurationTarget.Global,
+          );
+          log(`[Command] Display mode changed to: ${selectedMode.value}`);
+          
+          // 立即刷新状态栏以反映变更
+          await updateStats(statusBarItem);
+          
+          vscode.window.showInformationMessage(
+            `Display mode switched to ${selectedMode.value === 'classic' ? 'Classic' : 'Token'} mode`
+          );
+        }
+      }),
     );
 
     // Add to subscriptions

@@ -1,0 +1,8 @@
+warning: in the working copy of 'src/extension.ts', LF will be replaced by CRLF the next time Git touches it
+package.json
+src/extension.ts
+src/interfaces/types.ts
+src/locales/en.json
+src/locales/zh.json
+src/services/api.ts
+src/utils/updateStats.ts

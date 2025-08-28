@@ -2,7 +2,7 @@
   "name": "cursor-stats",
   "displayName": "Cursor Stats",
   "description": "A Cursor extension for monitoring usage.",
-  "version": "1.1.8",
+  "version": "1.2.0",
   "publisher": "Dwtexe",
   "icon": "images/icon.png",
   "repository": {
@@ -58,6 +58,11 @@
       {
         "command": "cursor-stats.selectLanguage",
         "title": "Cursor Stats: Select Language"
+      },
+      {
+        "command": "cursor-stats.switchDisplayMode",
+        "title": "Cursor Stats: Switch Display Mode",
+        "icon": "$(arrow-swap)"
       }
     ],
     "configuration": [
@@ -395,6 +400,28 @@
             "minimum": 1,
             "maximum": 50,
             "description": "Usage percentage threshold (1-50%). Alert when usage increases by this amount or more in a short time.",
+            "scope": "window"
+          },
+          "cursorStats.displayMode": {
+            "type": "string",
+            "default": "classic",
+            "enum": [
+              "classic",
+              "token"
+            ],
+            "enumDescriptions": [
+              "Classic mode: Display request count (e.g., 0/500)",
+              "Token mode: Display token usage cost in USD"
+            ],
+            "description": "Choose how usage is displayed in the status bar.",
+            "scope": "window"
+          },
+          "cursorStats.tokenMaxAmount": {
+            "type": "number",
+            "default": 20,
+            "minimum": 1,
+            "maximum": 1000,
+            "description": "Maximum token usage amount in USD for token billing mode. Used to calculate percentage and status bar color.",
             "scope": "window"
           }
         }

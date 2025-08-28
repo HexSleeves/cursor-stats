@@ -11,7 +11,7 @@
 
 import { log } from './logger';
 import { getCursorTokenFromDB } from '../services/database';
-import { checkUsageBasedStatus, fetchCursorStats } from '../services/api';
+import { checkUsageBasedStatus, fetchCursorStats, fetchTokenUsageStats } from '../services/api';
 import { checkAndNotifyUsage, checkAndNotifySpending, checkAndNotifyUnpaidInvoice, checkAndNotifySmartUsageMonitor } from '../handlers/notifications';
 import { formatRemainingPercentage, formatPercentageIntelligent } from './percentageFormatter';
 import { calculateRemainingDaysFromPeriod, formatRemainingDaysText, getRemainingDaysIcon, shouldShowRemainingDays } from './remainingDays';
@@ -28,7 +28,7 @@ import * as vscode from 'vscode';
 import { convertAndFormatCurrency, getCurrentCurrency } from './currency';
 import { t } from './i18n';
 import axios from 'axios';
-import { CursorUsageResponse } from '../interfaces/types';
+import { CursorUsageResponse, TokenUsageResponse } from '../interfaces/types';
 
 // Track unknown models to avoid repeated notifications
 let unknownModelNotificationShown = false;
@@ -61,6 +61,86 @@ export async function updateStats(statusBarItem: vscode.StatusBarItem) {
         // Show status bar early to ensure visibility
         statusBarItem.show();
 
+        // 检查显示模式配置
+        const displayMode = vscode.workspace.getConfiguration('cursorStats').get<string>('displayMode', 'classic');
+        log(`[Stats] Display mode: ${displayMode}`);
+
+        // Token模式：显示Token使用金额
+        if (displayMode === 'token') {
+            try {
+                // 获取团队信息以便传递正确的 teamId
+                const { checkTeamMembership } = await import('../services/team');
+                const { getExtensionContext } = await import('../extension');
+                const context = getExtensionContext();
+                const teamInfo = await checkTeamMembership(token, context);
+                
+                const tokenStats = await fetchTokenUsageStats(token, teamInfo.teamId);
+                
+                // 将美分转换为美金
+                const totalCostUSD = tokenStats.totalCostCents / 100;
+                
+                // 获取用户设置的最大金额
+                const maxAmount = vscode.workspace.getConfiguration('cursorStats').get<number>('tokenMaxAmount', 20);
+                
+                // 计算使用百分比
+                const usagePercent = Math.min((totalCostUSD / maxAmount) * 100, 100);
+                const remainingPercent = Math.max(100 - usagePercent, 0);
+                
+                // 格式化显示文本
+                const formattedUsedCost = `$${totalCostUSD.toFixed(2)}`;
+                const formattedMaxCost = `$${maxAmount.toFixed(2)}`;
+                const formattedRemainingPercent = formatRemainingPercentage(totalCostUSD, maxAmount);
+                
+                log(`[Stats] Token mode - Used: ${formattedUsedCost}, Max: ${formattedMaxCost}, Remaining: ${formattedRemainingPercent}%`);
+                
+                // 状态栏显示：使用金额/最大金额 剩余百分比%
+                statusBarItem.text = `$(credit-card) ${formattedUsedCost}/${formattedMaxCost} ${t('statusBar.remaining')}${formattedRemainingPercent}%`;
+                
+                // 根据使用百分比设置颜色
+                statusBarItem.color = getStatusBarColor(usagePercent);
+                
+                // 创建详细的Token使用提示信息
+                const tooltipLines = [
+                    t('statusBar.tokenUsageStats') || 'Token Usage Statistics',
+                    '',
+                    `💳 ${t('statusBar.totalCost') || 'Total Cost'}: ${formattedUsedCost}/${formattedMaxCost}`,
+                    `📊 ${Math.round(usagePercent)}% ${t('statusBar.utilized') || 'Utilized'} • ${formattedRemainingPercent}% ${t('statusBar.remaining') || 'Remaining'}`,
+                    '',
+                    `🔢 ${t('statusBar.totalTokens') || 'Total Tokens'}:`,
+                    `   • ${t('statusBar.inputTokens') || 'Input'}: ${tokenStats.totalInputTokens}`,
+                    `   • ${t('statusBar.outputTokens') || 'Output'}: ${tokenStats.totalOutputTokens}`,
+                    `   • ${t('statusBar.cacheRead') || 'Cache Read'}: ${tokenStats.totalCacheReadTokens}`,
+                    `   • ${t('statusBar.cacheWrite') || 'Cache Write'}: ${tokenStats.totalCacheWriteTokens}`,
+                    '',
+                    '📋 **Model Breakdown**'
+                ];
+                
+                // 添加每个模型的详细信息
+                for (const aggregation of tokenStats.aggregations) {
+                    const modelCostUSD = aggregation.totalCents / 100;
+                    tooltipLines.push(
+                        `   • **${aggregation.modelIntent}**: $${modelCostUSD.toFixed(2)}`,
+                        `     Input: ${aggregation.inputTokens}, Output: ${aggregation.outputTokens}`
+                    );
+                }
+                
+                tooltipLines.push(
+                    '',
+                    formatTooltipLine(`🕒 ${t('time.lastUpdated') || 'Last Updated'}: ${new Date().toLocaleString()}`)
+                );
+                
+                statusBarItem.tooltip = await createMarkdownTooltip(tooltipLines, false);
+                statusBarItem.show();
+                log('[Stats] Token mode stats update completed successfully');
+                return;
+            } catch (error: any) {
+                log(`[Stats] Token mode API error: ${error.message}`, true);
+                // 如果Token API失败，回退到经典模式
+                log('[Stats] Falling back to classic mode due to token API error');
+            }
+        }
+
+        // 经典模式：显示请求次数
         const stats = await fetchCursorStats(token).catch(async (error: any) => {
             if (error.response?.status === 401 || error.response?.status === 403) {
                 log('[Auth] Token expired or invalid, attempting to refresh...', true);

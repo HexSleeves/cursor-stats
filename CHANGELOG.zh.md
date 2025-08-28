@@ -3,6 +3,39 @@
 
 本扩展「cursor-stats」的所有重要变更将记录在此文件中。
 
+## [1.2.0] - 2025-01-28
+
+### 新增
+- 💳 **Token显示模式**：新增Token使用费用显示模式，替代传统的请求次数显示
+  - 可在"经典模式"（请求次数）和"Token模式"（美元费用）之间切换
+  - Token模式状态栏格式：`$X.XX/$Y.YY 剩余ZZ%`
+  - 工具提示中显示详细的Token分解信息，包含各模型的使用情况和费用
+- ⚙️ **新增配置设置**：
+  - `cursorStats.displayMode`：选择"classic"或"token"显示模式
+  - `cursorStats.tokenMaxAmount`：设置Token使用最大金额（1-1000美元），用于百分比计算
+- 🔄 **快速模式切换**：新增 `cursor-stats.switchDisplayMode` 命令，可即时切换显示模式
+  - 通过命令面板（Ctrl+Shift+P）访问
+  - 显示当前模式并为每个选项提供说明
+
+### 增强
+- 🌐 **Token API集成**：
+  - 调用 `https://cursor.com/api/dashboard/get-aggregated-usage-events` 获取实时Token使用数据
+  - 支持基于团队的Token使用跟踪，具有正确的日期范围筛选
+  - 自动从美分转换为美元，格式化精确显示
+- 🎨 **状态栏改进**：
+  - Token模式使用基于使用百分比的相同颜色编码系统
+  - 当Token API失败时智能回退到经典模式
+  - 增强工具提示，提供包含输入/输出/缓存Token在内的全面Token统计
+
+### 国际化
+- 为所有新的Token相关功能添加中英文翻译
+- 新增翻译键：`tokenUsageStats`、`totalTokens`、`inputTokens`、`outputTokens`、`cacheRead`、`cacheWrite`
+
+### 技术改进
+- 增强Token使用端点的API错误处理，提供详细日志记录
+- 改进TypeScript接口，新增 `TokenUsageResponse` 和 `TokenUsageAggregation` 类型
+- 优化团队成员检测，确保准确的Token使用报告
+
 ## [1.1.8] - 2025-01-27
 
 ### 新增
