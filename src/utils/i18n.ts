@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
-import * as fs from 'fs';
+import * as path from 'node:path';
+import * as fs from 'node:fs';
 import { log } from './logger';
 import { LanguagePack } from '../interfaces/i18n';
 
@@ -178,7 +178,7 @@ export function t(key: string, params?: { [key: string]: string | number }): str
   // Replace parameters
   if (params) {
     Object.keys(params).forEach((param) => {
-      value = value.replace(new RegExp(`{${param}}`, 'g'), params[param].toString());
+      value = value.replaceAll(new RegExp(`{${param}}`, 'g'), params[param].toString());
     });
   }
 

@@ -1,23 +1,27 @@
 import * as vscode from 'vscode';
-import { checkForUpdates } from './services/github';
-import { createStatusBarItem } from './handlers/statusBar';
-import { initializeLogging, log } from './utils/logger';
-import { getCursorTokenFromDB } from './services/database';
-import { checkUsageBasedStatus, getCurrentUsageLimit, setUsageLimit } from './services/api';
-import { resetNotifications } from './handlers/notifications';
 import {
-  startRefreshInterval,
-  setStatusBarItem,
-  setIsWindowFocused,
+  ExtensionState,
+  setGlobalExtensionState
+} from './core/ExtensionState';
+import { resetNotifications } from './handlers/notifications';
+import { createStatusBarItem } from './handlers/statusBar';
+import { checkUsageBasedStatus, getCurrentUsageLimit, setUsageLimit } from './services/api';
+import { getCursorTokenFromDB } from './services/database';
+import { checkForUpdates } from './services/github';
+import {
   clearAllIntervals,
   getCooldownStartTime,
+  initializeCooldown,
+  setIsWindowFocused,
+  setStatusBarItem,
   startCountdownDisplay,
+  startRefreshInterval,
 } from './utils/cooldown';
-import { updateStats } from './utils/updateStats';
-import { SUPPORTED_CURRENCIES } from './utils/currency';
-import { convertAndFormatCurrency } from './utils/currency';
+import { SUPPORTED_CURRENCIES, convertAndFormatCurrency } from './utils/currency';
+import { initializeI18n, setOnLanguageChangeCallback, t } from './utils/i18n';
+import { initializeLogging, log } from './utils/logger';
 import { createReportCommand } from './utils/report';
-import { initializeI18n, t, setOnLanguageChangeCallback } from './utils/i18n';
+import { updateStats } from './utils/updateStats';
 
 let statusBarItem: vscode.StatusBarItem;
 let extensionContext: vscode.ExtensionContext;
@@ -85,6 +89,28 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Create status bar item with enhanced logging
     statusBarItem = createStatusBarItem();
+
+    // Initialize ExtensionState with the context and status bar item
+    // This provides centralized state management for the extension
+    const extensionState = new ExtensionState(
+      context,
+      statusBarItem,
+      getRefreshIntervalMs,
+      async () => {
+        await updateStats(statusBarItem);
+      },
+    );
+    setGlobalExtensionState(extensionState);
+    log('[Initialization] ExtensionState initialized');
+
+    // Initialize CooldownManager with the status bar item and refresh callback
+    // This replaces module-level state with class-based state management
+    initializeCooldown(statusBarItem, getRefreshIntervalMs, async () => {
+      await updateStats(statusBarItem);
+    });
+    log('[Initialization] CooldownManager initialized');
+
+    // Set the status bar item in the old module for backward compatibility
     setStatusBarItem(statusBarItem);
 
     // Add window focus event listeners
@@ -140,6 +166,7 @@ export async function activate(context: vscode.ExtensionContext) {
             '@ext:Dwtexe.cursor-stats',
           );
         } catch (error) {
+          console.error('[Command] Failed to open settings directly: ' + error);
           log('[Command] Failed to open settings directly, trying alternative method...', true);
           try {
             // Fallback to opening settings view
@@ -151,6 +178,7 @@ export async function activate(context: vscode.ExtensionContext) {
               '@ext:Dwtexe.cursor-stats',
             );
           } catch (fallbackError) {
+            console.error('[Command] Failed to open settings with fallback method: ' + fallbackError);
             log('[Command] Failed to open settings with fallback method', true);
             // Show error message to user
             vscode.window.showErrorMessage(t('notifications.failedToOpenSettings'));
@@ -247,7 +275,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 placeHolder: '50',
                 validateInput: (value) => {
                   const num = Number(value);
-                  return !isNaN(num) && num > 0 ? null : t('commands.validNumberRequired');
+                  return !Number.isNaN(num) && num > 0 ? null : t('commands.validNumberRequired');
                 },
               });
               if (limit) {
@@ -270,7 +298,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 placeHolder: String(currentLimit.hardLimit),
                 validateInput: (value) => {
                   const num = Number(value);
-                  return !isNaN(num) && num > 0 ? null : t('commands.validNumberRequired');
+                  return !Number.isNaN(num) && num > 0 ? null : t('commands.validNumberRequired');
                 },
               });
               if (newLimit) {
@@ -369,18 +397,18 @@ export async function activate(context: vscode.ExtensionContext) {
         log('[Command] Switching display mode...');
         const config = vscode.workspace.getConfiguration('cursorStats');
         const currentMode = config.get<string>('displayMode', 'classic');
-        
+
         const displayModes = [
-          { 
-            label: '📊 Classic Mode', 
+          {
+            label: '📊 Classic Mode',
             description: 'Display request count (e.g., 0/500)',
-            value: 'classic' 
+            value: 'classic',
           },
-          { 
-            label: '💳 Token Mode', 
+          {
+            label: '💳 Token Mode',
             description: 'Display token usage cost in USD',
-            value: 'token' 
-          }
+            value: 'token',
+          },
         ];
 
         const selectedMode = await vscode.window.showQuickPick(
@@ -396,18 +424,14 @@ export async function activate(context: vscode.ExtensionContext) {
         );
 
         if (selectedMode && selectedMode.value !== currentMode) {
-          await config.update(
-            'displayMode',
-            selectedMode.value,
-            vscode.ConfigurationTarget.Global,
-          );
+          await config.update('displayMode', selectedMode.value, vscode.ConfigurationTarget.Global);
           log(`[Command] Display mode changed to: ${selectedMode.value}`);
-          
+
           // 立即刷新状态栏以反映变更
           await updateStats(statusBarItem);
-          
+
           vscode.window.showInformationMessage(
-            `Display mode switched to ${selectedMode.value === 'classic' ? 'Classic' : 'Token'} mode`
+            `Display mode switched to ${selectedMode.value === 'classic' ? 'Classic' : 'Token'} mode`,
           );
         }
       }),

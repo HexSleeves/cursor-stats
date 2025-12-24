@@ -21,23 +21,23 @@ export interface UsageBasedPricing {
 }
 
 export interface CursorStats {
-    currentMonth: {
-        month: number;
-        year: number;
-        usageBasedPricing: UsageBasedPricing;
-    };
-    lastMonth: {
-        month: number;
-        year: number;
-        usageBasedPricing: UsageBasedPricing;
-    };
-    premiumRequests: {
-        current: number;
-        limit: number;
-        startOfMonth: string;
-    };
-    isTeamSpendData?: boolean;
-    teamId?: number;
+  currentMonth: {
+    month: number;
+    year: number;
+    usageBasedPricing: UsageBasedPricing;
+  };
+  lastMonth: {
+    month: number;
+    year: number;
+    usageBasedPricing: UsageBasedPricing;
+  };
+  premiumRequests: {
+    current: number;
+    limit: number;
+    startOfMonth: string;
+  };
+  isTeamSpendData?: boolean;
+  teamId?: number;
 }
 
 export interface ProgressBarSettings {
@@ -86,9 +86,9 @@ export interface TimingInfo {
 }
 
 export interface UsageLimitResponse {
-    hardLimit?: number;
-    hardLimitPerUser?: number;
-    noUsageBasedAllowed?: boolean;
+  hardLimit?: number;
+  hardLimitPerUser?: number;
+  noUsageBasedAllowed?: boolean;
 }
 
 export interface GitHubRelease {
@@ -191,7 +191,6 @@ export interface TeamMember {
   role: string;
 }
 
-
 export interface UserCache {
   userId: number;
   jwtSub: string;
@@ -214,48 +213,90 @@ export interface CurrencyCache {
 }
 
 export interface CursorReport {
-    timestamp: string;
-    extensionVersion: string;
-    os: string;
-    vsCodeVersion: string;
-    cursorStats: CursorStats | null;
-    usageLimitResponse: UsageLimitResponse | null;
-    premiumUsage: CursorUsageResponse | null;
-    teamInfo: {
-        isTeamMember: boolean;
-        teamId?: number;
-        userId?: number;
-    } | null;
-    teamSpend: TeamSpendResponse | null;
-    rawResponses: {
-        cursorStats?: any;
-        usageLimit?: any;
-        premiumUsage?: any;
-        teamInfo?: any;
-        teamSpend?: any;
-        monthlyInvoice?: {
-            current?: any;
-            last?: any;
-        };
+  timestamp: string;
+  extensionVersion: string;
+  os: string;
+  vsCodeVersion: string;
+  cursorStats: CursorStats | null;
+  usageLimitResponse: UsageLimitResponse | null;
+  premiumUsage: CursorUsageResponse | null;
+  teamInfo: {
+    isTeamMember: boolean;
+    teamId?: number;
+    userId?: number;
+  } | null;
+  teamSpend: TeamSpendResponse | null;
+  rawResponses: {
+    cursorStats?: any;
+    usageLimit?: any;
+    premiumUsage?: any;
+    teamInfo?: any;
+    teamSpend?: any;
+    monthlyInvoice?: {
+      current?: any;
+      last?: any;
     };
-    logs: string[];
-    errors: {
-        [key: string]: string;
-    };
+  };
+  logs: string[];
+  errors: {
+    [key: string]: string;
+  };
 }
 
 export interface TeamSpendResponse {
-    teamMemberSpend: TeamMemberSpend[];
-    subscriptionCycleStart: string;
-    totalMembers: number;
-    totalPages: number;
+  teamMemberSpend: TeamMemberSpend[];
+  subscriptionCycleStart: string;
+  totalMembers: number;
+  totalPages: number;
 }
 
 export interface TeamMemberSpend {
-    userId: number;
-    name: string;
-    email: string;
-    role: string;
-    hardLimitOverrideDollars: number;
-    fastPremiumRequests?: number;
-} 
+  userId: number;
+  name: string;
+  email: string;
+  role: string;
+  hardLimitOverrideDollars: number;
+  fastPremiumRequests?: number;
+}
+
+/**
+ * Monthly invoice response from API
+ */
+export interface MonthlyInvoiceResponse {
+  month: number;
+  year: number;
+  usageEvents?: UsageItem[];
+  hasUnpaidMidMonthInvoice?: boolean;
+  midMonthPayment?: number;
+}
+
+/**
+ * Filtered usage events response (for today's usage)
+ */
+export interface FilteredUsageEventsResponse {
+  usageEvents: Array<{
+    timestamp: number;
+    modelIntent: string;
+    totalCents: number;
+  }>;
+  totalCents: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+/**
+ * Today's usage data
+ */
+export interface TodayUsageData {
+  totalCents: number;
+  totalUSD: number;
+}
+
+/**
+ * Usage-based pricing status
+ */
+export interface UsageBasedStatus {
+  isEnabled: boolean;
+  limit: number;
+}

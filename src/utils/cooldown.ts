@@ -1,147 +1,200 @@
-import { getRefreshIntervalMs } from '../extension';
-import { updateStats } from '../utils/updateStats';
-import { log } from './logger';
+/**
+ * Cooldown utilities - Backward compatibility layer
+ * This module now uses CooldownManager internally but exports the same interface
+ * to maintain compatibility with existing code (especially extension.ts)
+ */
+
 import * as vscode from 'vscode';
-import { t } from './i18n';
+import { CooldownManager, type RefreshCallback } from '../core/CooldownManager';
 
-// Private state
-let _countdownInterval: NodeJS.Timeout | null = null;
-let _refreshInterval: NodeJS.Timeout | null = null;
-let _cooldownStartTime: number | null = null;
-let _consecutiveErrorCount: number = 0;
-let _isWindowFocused: boolean = true;
-let _statusBarItem: vscode.StatusBarItem | null = null;
+// Lazy-loaded CooldownManager instance
+let _cooldownManager: CooldownManager | null = null;
 
+/**
+ * Get or create the CooldownManager instance
+ * This is lazy-loaded to avoid circular dependency issues
+ */
+function getCooldownManager(): CooldownManager | null {
+  return _cooldownManager;
+}
+
+/**
+ * Initialize the CooldownManager with the required dependencies
+ * Call this from extension.ts after setting up the status bar item
+ */
+export function initializeCooldown(
+  statusBarItem: vscode.StatusBarItem,
+  getRefreshIntervalMs: () => number,
+  refreshCallback: RefreshCallback,
+): void {
+  _cooldownManager = new CooldownManager(statusBarItem, getRefreshIntervalMs, refreshCallback);
+}
+
+/**
+ * Backward compatibility: Export the cooldown duration constant
+ */
 export const COOLDOWN_DURATION_MS = 10 * 60 * 1000; // 10 minutes
 
-// Getters
-export const getCountdownInterval = () => _countdownInterval;
-export const getRefreshInterval = () => _refreshInterval;
-export const getCooldownStartTime = () => _cooldownStartTime;
-export const getConsecutiveErrorCount = () => _consecutiveErrorCount;
-export const getIsWindowFocused = () => _isWindowFocused;
-export const getStatusBarItem = () => _statusBarItem;
+/**
+ * Backward compatibility: Get the countdown interval timer
+ */
+export const getCountdownInterval = () => _cooldownManager?.getCountdownInterval ?? null;
 
-// Setters
-export const setCountdownInterval = (interval: NodeJS.Timeout | null) => {
-  _countdownInterval = interval;
+/**
+ * Backward compatibility: Get the refresh interval timer
+ */
+export const getRefreshInterval = () => _cooldownManager?.getRefreshInterval ?? null;
+
+/**
+ * Backward compatibility: Get the cooldown start time
+ */
+export const getCooldownStartTime = () => {
+  const manager = getCooldownManager();
+  if (manager) {
+    return manager.getCooldownStartTime;
+  }
+  return null;
 };
 
-export const setRefreshInterval = (interval: NodeJS.Timeout | null) => {
-  _refreshInterval = interval;
+/**
+ * Backward compatibility: Get the consecutive error count
+ */
+export const getConsecutiveErrorCount = () => {
+  const manager = getCooldownManager();
+  return manager?.getConsecutiveErrorCount ?? 0;
 };
 
-export const setCooldownStartTime = (time: number | null) => {
-  _cooldownStartTime = time;
+/**
+ * Backward compatibility: Get window focus state
+ */
+export const getIsWindowFocused = () => {
+  const manager = getCooldownManager();
+  return manager?.getIsWindowFocused ?? true;
 };
 
-export const setConsecutiveErrorCount = (count: number) => {
-  _consecutiveErrorCount = count;
+/**
+ * Backward compatibility: Get the status bar item
+ * Note: This now returns the item directly from CooldownManager
+ */
+export const getStatusBarItem = () => {
+  const manager = getCooldownManager();
+  return manager?.getStatusBarItem ?? null;
 };
 
+/**
+ * Backward compatibility: Set window focus state
+ */
 export const setIsWindowFocused = (focused: boolean) => {
-  _isWindowFocused = focused;
+  const manager = getCooldownManager();
+  if (manager) {
+    manager.setWindowFocused(focused);
+  }
 };
 
+/**
+ * Backward compatibility: Set the status bar item
+ */
 export const setStatusBarItem = (item: vscode.StatusBarItem) => {
-  _statusBarItem = item;
+  const manager = getCooldownManager();
+  if (manager) {
+    manager.setStatusBarItem(item);
+  }
 };
 
+/**
+ * Backward compatibility: Set cooldown start time
+ * Note: This starts the cooldown if a time is provided
+ */
+export const setCooldownStartTime = (time: number | null) => {
+  const manager = getCooldownManager();
+  if (manager) {
+    if (time !== null && !manager.getCooldownStartTime) {
+      // Starting a new cooldown period
+      manager.startCooldown();
+    } else if (time === null) {
+      // Ending cooldown
+      manager.reset();
+    }
+  }
+};
+
+/**
+ * Backward compatibility: Set the consecutive error count
+ */
+export const setConsecutiveErrorCount = (count: number) => {
+  const manager = getCooldownManager();
+  if (manager) {
+    // Reset and set to the new count
+    manager.resetErrorCount();
+    for (let i = 0; i < count; i++) {
+      manager.incrementErrorCount();
+    }
+  }
+};
+
+/**
+ * Backward compatibility: Increment consecutive error count
+ */
 export const incrementConsecutiveErrorCount = () => {
-  _consecutiveErrorCount++;
-  return _consecutiveErrorCount;
+  const manager = getCooldownManager();
+  return manager ? manager.incrementErrorCount() : 0;
 };
 
+/**
+ * Backward compatibility: Reset consecutive error count
+ */
 export const resetConsecutiveErrorCount = () => {
-  _consecutiveErrorCount = 0;
+  const manager = getCooldownManager();
+  if (manager) {
+    manager.resetErrorCount();
+  }
 };
 
+/**
+ * Format remaining milliseconds as MM:SS
+ * @param remainingMs - Remaining time in milliseconds
+ * @returns Formatted time string (e.g., "09:45")
+ */
 export function formatCountdown(remainingMs: number): string {
+  const manager = getCooldownManager();
+  if (manager) {
+    return manager.formatCountdown(remainingMs);
+  }
+  // Fallback implementation
   const minutes = Math.floor(remainingMs / 60000);
   const seconds = Math.floor((remainingMs % 60000) / 1000);
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
+/**
+ * Start the countdown display
+ * Backward compatibility - delegates to CooldownManager
+ */
 export function startCountdownDisplay() {
-  if (_countdownInterval) {
-    clearInterval(_countdownInterval);
-    _countdownInterval = null;
+  const manager = getCooldownManager();
+  if (manager) {
+    manager.startCountdownDisplay();
   }
-
-  const updateCountdown = () => {
-    if (!_cooldownStartTime || !_statusBarItem) {
-      return;
-    }
-
-    const now = Date.now();
-    const elapsed = now - _cooldownStartTime;
-    const remaining = COOLDOWN_DURATION_MS - elapsed;
-
-    if (remaining <= 0) {
-      // Cooldown finished
-      if (_countdownInterval) {
-        clearInterval(_countdownInterval);
-        _countdownInterval = null;
-      }
-      _cooldownStartTime = null;
-      _consecutiveErrorCount = 0;
-      startRefreshInterval(); // Resume normal operation
-      if (_statusBarItem) {
-        updateStats(_statusBarItem); // Try updating immediately
-      }
-      return;
-    }
-
-    // Update status bar with countdown
-    _statusBarItem.text = `$(warning) ${t('statusBar.apiUnavailable', { countdown: formatCountdown(remaining) })}`;
-    _statusBarItem.show();
-    log(`[Cooldown] Updated countdown: ${formatCountdown(remaining)}`);
-  };
-
-  // Start the countdown immediately
-  updateCountdown();
-  // Then set up the interval
-  _countdownInterval = setInterval(updateCountdown, 1000);
-
-  log(`[Cooldown] Started countdown timer at ${new Date().toISOString()}`);
 }
 
+/**
+ * Start the refresh interval
+ * Backward compatibility - delegates to CooldownManager
+ */
 export function startRefreshInterval() {
-  // Clear any existing interval
-  if (_refreshInterval) {
-    clearInterval(_refreshInterval);
-    _refreshInterval = null;
-  }
-
-  // Don't start interval if in cooldown or window not focused
-  if (_cooldownStartTime || !_isWindowFocused) {
-    log(
-      `[Refresh] Refresh interval not started: ${_cooldownStartTime ? 'in cooldown' : 'window not focused'}`,
-    );
-    return;
-  }
-
-  // Start new interval
-  const intervalMs = getRefreshIntervalMs();
-  log(`[Refresh] Starting refresh interval: ${intervalMs}ms`);
-  if (_statusBarItem) {
-    _refreshInterval = setInterval(() => {
-      if (!_cooldownStartTime) {
-        // Double-check we're not in cooldown
-        updateStats(_statusBarItem!);
-      }
-    }, intervalMs);
+  const manager = getCooldownManager();
+  if (manager) {
+    manager.startRefreshInterval();
   }
 }
 
-// Cleanup function
+/**
+ * Clear all intervals
+ * Backward compatibility - delegates to CooldownManager
+ */
 export function clearAllIntervals() {
-  if (_countdownInterval) {
-    clearInterval(_countdownInterval);
-    _countdownInterval = null;
-  }
-  if (_refreshInterval) {
-    clearInterval(_refreshInterval);
-    _refreshInterval = null;
+  const manager = getCooldownManager();
+  if (manager) {
+    manager.clearAllIntervals();
   }
 }

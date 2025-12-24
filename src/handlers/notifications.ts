@@ -1,52 +1,40 @@
 /**
  * 文件说明：通知与提示处理模块
  * 新增内容：
- *  - 最后五次（剩余≤5）区间内，在第一次（剩余=5）与最后一次（剩余=1/0）且使用百分比≥阈值时提示
+ *  - 最后五次（剩余<=5）区间内，在第一次（剩余=5）与最后一次（剩余=1/0）且使用百分比>=阈值时提示
  *  - 阈值可配置（默认10%）
  * 使用说明：调用 checkAndNotifyLastFiveUsage 于统计更新后触发
  * @author SM
+ *
+ * REFACTORED: Now uses NotificationState class for state management
+ * instead of module-level variables for better testability and lifecycle management
  */
 import * as vscode from 'vscode';
 import { log } from '../utils/logger';
 import { convertAndFormatCurrency } from '../utils/currency';
 import { UsageInfo } from '../interfaces/types';
 import { t } from '../utils/i18n';
+import { getGlobalNotificationState, type NotificationState } from '../core/NotificationState';
 
-// Track which thresholds have been notified in the current session
-const notifiedPremiumThresholds = new Set<number>();
-const notifiedUsageBasedThresholds = new Set<number>();
-const notifiedSpendingThresholds = new Set<number>();
-let isNotificationInProgress = false;
-let unpaidInvoiceNotifiedThisSession = false;
-let isSpendingCheckInitialRun = true; // New state variable for spending checks
-// 记录智能使用监控状态，避免重复弹窗
-let smartUsageMonitorData = {
-  lastCheckTime: 0,
-  lastUsageValue: 0,
-  checkCount: 0,
-  lastNotificationTime: 0
-};
+/**
+ * Get the notification state instance
+ * @returns NotificationState instance
+ */
+function getNotificationState(): NotificationState {
+  return getGlobalNotificationState();
+}
 
-// Reset notification tracking
+// Reset notification tracking - now delegates to NotificationState
 export function resetNotifications() {
-  notifiedPremiumThresholds.clear();
-  notifiedUsageBasedThresholds.clear();
-  notifiedSpendingThresholds.clear();
-  isNotificationInProgress = false;
-  unpaidInvoiceNotifiedThisSession = false;
-  isSpendingCheckInitialRun = true; // Reset this flag as well
-  // 重置智能使用监控状态
-  smartUsageMonitorData = {
-    lastCheckTime: 0,
-    lastUsageValue: 0,
-    checkCount: 0,
-    lastNotificationTime: 0
-  };
-  log('[Notifications] Reset notification tracking, including spending check initial run flag.');
+  getNotificationState().reset();
+  log('[Notifications] Reset notification tracking.');
 }
 
 export async function checkAndNotifySpending(totalSpent: number) {
-  if (isNotificationInProgress) {
+  const state = getNotificationState();
+
+  // Prevent concurrent notifications
+  if (!state.beginNotification()) {
     return;
   }
 
@@ -56,27 +44,22 @@ export async function checkAndNotifySpending(totalSpent: number) {
   // If threshold is 0 or less, spending notifications are disabled
   if (spendingThreshold <= 0) {
     log('[Notifications] Spending alerts disabled (threshold <= 0).');
+    state.endNotification();
     return;
   }
 
   try {
-    isNotificationInProgress = true;
-    if (isSpendingCheckInitialRun) {
+    if (state.getIsSpendingCheckInitialRun) {
       // On the initial run (or after a reset), prime the notifiedSpendingThresholds
       // by adding all multiples of spendingThreshold that are less than or equal to totalSpent.
       const multiplesToPrime = Math.floor(totalSpent / spendingThreshold);
       for (let i = 1; i <= multiplesToPrime; i++) {
-        notifiedSpendingThresholds.add(i);
+        state.markSpendingThresholdAsNotified(i);
       }
-      isSpendingCheckInitialRun = false; // Clear the flag after priming
+      state.clearSpendingCheckInitialRun();
     }
 
-    let lastNotifiedMultiple = 0;
-    if (notifiedSpendingThresholds.size > 0) {
-      lastNotifiedMultiple = Math.max(0, ...Array.from(notifiedSpendingThresholds));
-    }
-
-    let multipleToConsider = lastNotifiedMultiple + 1;
+    let multipleToConsider = state.getNextSpendingMultiple();
 
     while (true) {
       const currentThresholdAmount = multipleToConsider * spendingThreshold;
@@ -111,7 +94,7 @@ export async function checkAndNotifySpending(totalSpent: number) {
         }
 
         // Mark this multiple as notified
-        notifiedSpendingThresholds.add(multipleToConsider);
+        state.markSpendingThresholdAsNotified(multipleToConsider);
         multipleToConsider++;
       } else {
         // totalSpent is less than currentThresholdAmount, so we haven't crossed this one yet. Stop.
@@ -124,17 +107,18 @@ export async function checkAndNotifySpending(totalSpent: number) {
       true,
     );
   } finally {
-    isNotificationInProgress = false;
+    state.endNotification();
   }
 }
 
 export async function checkAndNotifyUnpaidInvoice(token: string) {
-  if (unpaidInvoiceNotifiedThisSession || isNotificationInProgress) {
+  const state = getNotificationState();
+
+  if (state.getUnpaidInvoiceNotified || !state.beginNotification()) {
     return;
   }
 
   try {
-    isNotificationInProgress = true;
     log('[Notifications] Checking for unpaid mid-month invoice notification.');
 
     const notification = await vscode.window.showWarningMessage(
@@ -153,16 +137,18 @@ export async function checkAndNotifyUnpaidInvoice(token: string) {
         vscode.env.openExternal(vscode.Uri.parse('https://www.cursor.com/settings'));
       }
     }
-    unpaidInvoiceNotifiedThisSession = true;
+    state.markUnpaidInvoiceAsNotified();
     log('[Notifications] Unpaid invoice notification shown.');
   } finally {
-    isNotificationInProgress = false;
+    state.endNotification();
   }
 }
 
 export async function checkAndNotifyUsage(usageInfo: UsageInfo) {
+  const state = getNotificationState();
+
   // Prevent concurrent notifications
-  if (isNotificationInProgress) {
+  if (!state.beginNotification()) {
     return;
   }
 
@@ -170,11 +156,11 @@ export async function checkAndNotifyUsage(usageInfo: UsageInfo) {
   const enableAlerts = config.get<boolean>('enableAlerts', true);
 
   if (!enableAlerts) {
+    state.endNotification();
     return;
   }
 
   try {
-    isNotificationInProgress = true;
     const thresholds = config
       .get<number[]>('usageAlertThresholds', [10, 30, 50, 75, 90, 100])
       .sort((a, b) => b - a); // Sort in descending order to get highest threshold first
@@ -196,10 +182,24 @@ export async function checkAndNotifyUsage(usageInfo: UsageInfo) {
     // Find the highest threshold that has been exceeded
     const highestExceededThreshold = thresholds.find((threshold) => percentage >= threshold);
 
+    // Get the appropriate threshold set based on type
+    const hasBeenNotified =
+      type === 'premium'
+        ? (threshold: number) => state.hasPremiumThresholdBeenNotified(threshold)
+        : (threshold: number) => state.hasUsageBasedThresholdBeenNotified(threshold);
+
+    const markAsNotified =
+      type === 'premium'
+        ? (threshold: number) => state.markPremiumThresholdAsNotified(threshold)
+        : (threshold: number) => state.markUsageBasedThresholdAsNotified(threshold);
+
+    const clearThreshold =
+      type === 'premium'
+        ? (threshold: number) => state.clearPremiumThreshold(threshold)
+        : (threshold: number) => state.clearUsageBasedThreshold(threshold);
+
     // Only notify if we haven't notified this threshold yet
-    const relevantThresholds =
-      type === 'premium' ? notifiedPremiumThresholds : notifiedUsageBasedThresholds;
-    if (highestExceededThreshold && !relevantThresholds.has(highestExceededThreshold)) {
+    if (highestExceededThreshold && !hasBeenNotified(highestExceededThreshold)) {
       log(
         `[Notifications] Highest usage threshold ${highestExceededThreshold}% exceeded for ${type} usage`,
       );
@@ -249,7 +249,7 @@ export async function checkAndNotifyUsage(usageInfo: UsageInfo) {
             await vscode.commands.executeCommand('workbench.action.openSettings');
             await vscode.commands.executeCommand('workbench.action.search.toggleQueryDetails');
             await vscode.commands.executeCommand(
-              'workbench.action.search.action.replaceAll',
+              'workbench.action.search.actionreplaceAll',
               '@ext:Dwtexe.cursor-stats',
             );
           } catch (fallbackError) {
@@ -267,22 +267,24 @@ export async function checkAndNotifyUsage(usageInfo: UsageInfo) {
       // Mark all thresholds up to and including the current one as notified
       thresholds.forEach((threshold) => {
         if (threshold <= highestExceededThreshold) {
-          relevantThresholds.add(threshold);
+          markAsNotified(threshold);
         }
       });
     }
 
     // Clear notifications for thresholds that are no longer exceeded
-    for (const threshold of relevantThresholds) {
+    thresholds.forEach((threshold) => {
       if (percentage < threshold) {
-        relevantThresholds.delete(threshold);
-        log(
-          `[Notifications] Cleared notification for threshold ${threshold}% as ${type} usage dropped below it`,
-        );
+        if (hasBeenNotified(threshold)) {
+          clearThreshold(threshold);
+          log(
+            `[Notifications] Cleared notification for threshold ${threshold}% as ${type} usage dropped below it`,
+          );
+        }
       }
-    }
+    });
   } finally {
-    isNotificationInProgress = false;
+    state.endNotification();
   }
 }
 
@@ -297,45 +299,58 @@ export async function checkAndNotifyUsage(usageInfo: UsageInfo) {
  *  - cursorStats.smartUsageMonitorThreshold: 使用变化百分比阈值（默认10）
  * @param premiumCurrent 当前已用快速请求次数
  * @param premiumLimit   每月快速请求总上限
+ *
+ * REFACTORED: Now uses NotificationState for smart usage monitor state
  */
 export async function checkAndNotifySmartUsageMonitor(
   premiumCurrent: number,
   premiumLimit: number,
 ) {
+  const state = getNotificationState();
+
   try {
     const config = vscode.workspace.getConfiguration('cursorStats');
     const enabled = config.get<boolean>('smartUsageMonitorEnabled', true);
-    if (!enabled) return;
+    if (!enabled) {
+      return;
+    }
 
     // 防御：无上限或数据无效时不检测
-    if (!premiumLimit || premiumLimit <= 0) return;
+    if (!premiumLimit || premiumLimit <= 0) {
+      return;
+    }
 
     const checkInterval = Math.max(1, config.get<number>('smartUsageMonitorInterval', 5));
-    const usageThreshold = Math.max(0, Math.min(100, config.get<number>('smartUsageMonitorThreshold', 10)));
+    const usageThreshold = Math.max(
+      0,
+      Math.min(100, config.get<number>('smartUsageMonitorThreshold', 10)),
+    );
     const currentTime = Date.now();
-    
+
     // 增加检查计数
-    smartUsageMonitorData.checkCount++;
-    
+    const checkCount = state.incrementSmartUsageMonitorCheckCount();
+
     // 每隔指定次数进行一次检查
-    if (smartUsageMonitorData.checkCount % checkInterval === 0) {
+    if (checkCount % checkInterval === 0) {
       const currentUsagePercent = Math.max(0, Math.min(100, (premiumCurrent / premiumLimit) * 100));
-      
+      const monitorData = state.getSmartUsageMonitorData;
+
       // 如果不是第一次检查
-      if (smartUsageMonitorData.lastCheckTime > 0) {
-        const timeSinceLastCheck = currentTime - smartUsageMonitorData.lastCheckTime;
-        const usageChange = currentUsagePercent - smartUsageMonitorData.lastUsageValue;
-        
+      if (monitorData.lastCheckTime > 0) {
+        const timeSinceLastCheck = currentTime - monitorData.lastCheckTime;
+        const usageChange = currentUsagePercent - monitorData.lastUsageValue;
+
         // 检查是否在短时间内（5分钟内）使用量增长超过阈值
         const isShortTime = timeSinceLastCheck < 5 * 60 * 1000; // 5分钟
         const isHighUsageIncrease = usageChange >= usageThreshold;
-        
+
         // 避免频繁弹窗：距离上次通知至少10分钟
-        const timeSinceLastNotification = currentTime - smartUsageMonitorData.lastNotificationTime;
-        const canShowNotification = timeSinceLastNotification > 10 * 60 * 1000; // 10分钟
-        
-        log(`[Smart Usage Monitor] Check ${smartUsageMonitorData.checkCount}: usage change ${usageChange.toFixed(1)}% in ${(timeSinceLastCheck/1000/60).toFixed(1)} minutes`);
-        
+        const canShowNotification = state.canShowSmartUsageNotification(currentTime, 10);
+
+        log(
+          `[Smart Usage Monitor] Check ${checkCount}: usage change ${usageChange.toFixed(1)}% in ${(timeSinceLastCheck / 1000 / 60).toFixed(1)} minutes`,
+        );
+
         if (isShortTime && isHighUsageIncrease && canShowNotification) {
           const timeMinutes = Math.round(timeSinceLastCheck / 1000 / 60);
           const msg = t('notifications.smartUsageMonitorAlert', {
@@ -343,45 +358,52 @@ export async function checkAndNotifySmartUsageMonitor(
             timeMinutes: timeMinutes,
             interval: checkInterval,
           });
-          
+
           const selection = await vscode.window.showWarningMessage(
             msg,
-            { 
-              modal: false, 
+            {
+              modal: false,
               detail: t('notifications.smartUsageMonitorDetail', {
                 threshold: usageThreshold,
-                interval: checkInterval
-              })
+                interval: checkInterval,
+              }),
             },
             t('notifications.checkModelSettings'),
             t('notifications.adjustSettings'),
             t('notifications.dismiss'),
           );
-          
+
           if (selection === t('notifications.checkModelSettings')) {
             // 提示用户检查当前选择的模型
             vscode.window.showInformationMessage(
               t('notifications.checkCurrentModel'),
-              t('notifications.dismiss')
+              t('notifications.dismiss'),
             );
           } else if (selection === t('notifications.adjustSettings')) {
             try {
-              await vscode.commands.executeCommand('workbench.action.openSettings', '@ext:Dwtexe.cursor-stats');
+              await vscode.commands.executeCommand(
+                'workbench.action.openSettings',
+                '@ext:Dwtexe.cursor-stats',
+              );
             } catch (error) {
               log('[Notifications] Failed to open settings for smart usage monitor', true);
             }
           }
-          
-          smartUsageMonitorData.lastNotificationTime = currentTime;
-          log(`[Smart Usage Monitor] Notification shown: ${usageChange.toFixed(1)}% increase in ${timeMinutes} minutes`);
+
+          state.recordSmartUsageNotification(currentTime);
+          log(
+            `[Smart Usage Monitor] Notification shown: ${usageChange.toFixed(1)}% increase in ${timeMinutes} minutes`,
+          );
         }
       }
-      
+
       // 更新检查数据
-      smartUsageMonitorData.lastCheckTime = currentTime;
-      smartUsageMonitorData.lastUsageValue = currentUsagePercent;
+      state.updateSmartUsageMonitorData(currentUsagePercent, currentTime);
     }
   } catch (error) {
-    log('[Notifications] Error in checkAndNotifySmartUsageMonitor: ' + (error as Error).message, true);
+    log(
+      '[Notifications] Error in checkAndNotifySmartUsageMonitor: ' + (error as Error).message,
+      true,
+    );
   }
 }

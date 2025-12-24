@@ -102,12 +102,12 @@ export function createPeriodProgressBar(
 
       // Parse start date
       const startParts = startStr.split(' ');
-      const startDay = parseInt(startParts[0]);
+      const startDay = Number.parseInt(startParts[0]);
       const startMonth = getMonthNumber(startParts[1]);
 
       // Parse end date
       const endParts = endStr.split(' ');
-      const endDay = parseInt(endParts[0]);
+      const endDay = Number.parseInt(endParts[0]);
       const endMonth = getMonthNumber(endParts[1]);
 
       // Create Date objects with current year

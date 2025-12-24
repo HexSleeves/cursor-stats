@@ -26,31 +26,31 @@ export function calculateRemainingDays(endDateStr: string): number {
   try {
     // 解析日期字符串，格式如 "17 May" 或 "17 5月"
     const [dayStr, monthStr] = endDateStr.trim().split(' ');
-    const day = parseInt(dayStr);
+    const day = Number.parseInt(dayStr);
     const month = getMonthNumber(monthStr);
-    
-    if (isNaN(day) || month === undefined) {
+
+    if (Number.isNaN(day) || month === undefined) {
       console.warn(`[RemainingDays] 无法解析日期: ${endDateStr}`);
       return 0;
     }
-    
+
     const currentYear = new Date().getFullYear();
     let endDate = new Date(currentYear, month, day);
-    
+
     // 如果结束日期早于当前日期，说明是下一年的日期
     const now = new Date();
     if (endDate < now) {
       endDate.setFullYear(currentYear + 1);
     }
-    
+
     // 计算剩余天数
     const today = new Date();
     today.setHours(0, 0, 0, 0); // 重置时间为当天开始
     endDate.setHours(23, 59, 59, 999); // 设置为当天结束
-    
+
     const diffTime = endDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     return Math.max(0, diffDays);
   } catch (error) {
     console.error(`[RemainingDays] 计算剩余天数时出错: ${error}`);
@@ -65,12 +65,12 @@ export function calculateRemainingDays(endDateStr: string): number {
  */
 export function calculateRemainingDaysFromPeriod(periodInfo: string): number {
   try {
-    if (!periodInfo || !periodInfo.includes('-')) {
+    if (!periodInfo?.includes('-')) {
       return 0;
     }
-    
+
     // 提取结束日期部分
-    const [, endDateStr] = periodInfo.split('-').map(d => d.trim());
+    const [, endDateStr] = periodInfo.split('-').map((d) => d.trim());
     return calculateRemainingDays(endDateStr);
   } catch (error) {
     console.error(`[RemainingDays] 从周期信息计算剩余天数时出错: ${error}`);
@@ -98,7 +98,9 @@ export function formatRemainingDaysText(remainingDays: number): string {
  * @param remainingDays 剩余天数
  * @returns 紧急程度: 'normal' | 'warning' | 'critical' | 'expired'
  */
-export function getRemainingDaysUrgency(remainingDays: number): 'normal' | 'warning' | 'critical' | 'expired' {
+export function getRemainingDaysUrgency(
+  remainingDays: number,
+): 'normal' | 'warning' | 'critical' | 'expired' {
   if (remainingDays <= 0) {
     return 'expired';
   } else if (remainingDays <= 3) {
@@ -117,7 +119,7 @@ export function getRemainingDaysUrgency(remainingDays: number): 'normal' | 'warn
  */
 export function getRemainingDaysIcon(remainingDays: number): string {
   const urgency = getRemainingDaysUrgency(remainingDays);
-  
+
   switch (urgency) {
     case 'expired':
       return '⏰';

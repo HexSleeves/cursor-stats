@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import axios from 'axios';
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { log } from './logger';
 import { CurrencyRates, CurrencyCache } from '../interfaces/types';
 import { getExtensionContext } from '../extension';
@@ -240,9 +240,10 @@ export async function convertAndFormatCurrency(
   }
 
   try {
-    const { value, symbol } = await convertAmount(amount, currencyCode);
+    const { value } = await convertAmount(amount, currencyCode);
     return formatCurrency(value, currencyCode, decimals);
   } catch (error) {
+    console.error('[Currency] Error converting and formatting currency: ' + error);
     return `$${amount.toFixed(decimals)}`;
   }
 }

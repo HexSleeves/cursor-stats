@@ -1,11 +1,10 @@
-import * as path from 'path';
-import * as os from 'os';
+import * as path from 'node:path';
 import * as jwt from 'jsonwebtoken';
 import * as vscode from 'vscode';
-import * as fs from 'fs';
+import * as fs from 'node:fs';
 import initSqlJs from 'sql.js';
 import { log } from '../utils/logger';
-import { execSync } from 'child_process';
+import { execSync } from 'node:child_process';
 
 // use globalStorageUri to get the user directory path
 // support Portable mode : https://code.visualstudio.com/docs/editor/portable
