@@ -136,8 +136,8 @@ export async function updateStats(statusBarItem: vscode.StatusBarItem) {
           }
         }
 
-        // 状态栏显示：使用金额/最大金额 剩余百分比% • 今日: $X.XX
-        statusBarItem.text = `$(credit-card) ${formattedUsedCost}/${formattedMaxCost} ${t('statusBar.remaining')}${formattedRemainingPercent}%${todayUsageText}`;
+        // 状态栏显示：使用金额/最大金额
+        statusBarItem.text = `$(credit-card) ${formattedUsedCost}/${formattedMaxCost}`;
 
         // 根据使用百分比设置颜色
         statusBarItem.color = getStatusBarColor(usagePercent);
@@ -302,17 +302,11 @@ export async function updateStats(statusBarItem: vscode.StatusBarItem) {
       const formattedActualCost = await convertAndFormatCurrency(actualTotalCost);
       costText = ` $(credit-card) ${formattedActualCost}`;
 
-      // 状态栏展示：已用/总数 + 剩余百分比 + （可选）剩余天数 +（可选）费用
-      const remainingDaysPart = shouldShowRemainingDays()
-        ? ` ${remainingDaysIcon}${remainingDaysText}`
-        : '';
-      totalUsageText = ` ${stats.premiumRequests.current}/${stats.premiumRequests.limit} ${t('statusBar.remaining')}${remainingPercent}%${remainingDaysPart}${costText}`;
+      // 状态栏展示：已用/总数 + （可选）费用
+      totalUsageText = ` ${stats.premiumRequests.current}/${stats.premiumRequests.limit}${costText}`;
     } else {
-      // 当无使用量计费条目时，仅展示计数与剩余百分比和（可选）剩余天数
-      const remainingDaysPart = shouldShowRemainingDays()
-        ? ` ${remainingDaysIcon}${remainingDaysText}`
-        : '';
-      totalUsageText = ` ${stats.premiumRequests.current}/${stats.premiumRequests.limit} ${t('statusBar.remaining')}${remainingPercent}%${remainingDaysPart}`;
+      // 当无使用量计费条目时，仅展示计数
+      totalUsageText = ` ${stats.premiumRequests.current}/${stats.premiumRequests.limit}`;
     }
 
     // Set status bar color based on usage type

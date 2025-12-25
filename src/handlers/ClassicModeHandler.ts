@@ -150,7 +150,7 @@ export class ClassicModeHandler {
     _usageBasedStatus: { isEnabled: boolean; limit: number },
     _premiumPercent: number,
     _remainingPercent: number,
-    remainingDaysInfo: { remainingDaysText: string; remainingDaysIcon: string } | null,
+    _remainingDaysInfo: { remainingDaysText: string; remainingDaysIcon: string } | null,
   ): string {
     const { premiumRequests, currentMonth, lastMonth } = cursorStats;
 
@@ -174,7 +174,7 @@ export class ClassicModeHandler {
       costText = ` $(credit-card) ${formattedActualCost}`;
     }
 
-    return ` ${premiumRequests.current}/${premiumRequests.limit}${costText}`;
+    return ` ${premiumRequests.current}/${premiumRequests.limit}`;
   }
 
   /**

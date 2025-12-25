@@ -134,7 +134,7 @@ export class TokenModeHandler {
       }
 
       // Build status bar text - simplified to avoid squishing
-      statusBarItem.text = `$(credit-card) ${formattedUsedCost}/${formattedMaxCost}`;
+      statusBarItem.text = `$(credit-card) ${formattedUsedCost}`;
 
       // Set status bar color
       statusBarItem.color = getStatusBarColor(usagePercent);
