@@ -454,7 +454,7 @@
     "@typescript-eslint/parser": "8.57.2",
     "@vscode/test-cli": "^0.0.12",
     "eslint": "9.39.2",
-    "typescript": "6.0.2",
+    "typescript": "5.9.3",
     "prettier": "^3.8.1"
   },
   "dependencies": {
