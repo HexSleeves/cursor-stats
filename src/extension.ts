@@ -1,8 +1,5 @@
 import * as vscode from 'vscode';
-import {
-  ExtensionState,
-  setGlobalExtensionState
-} from './core/ExtensionState';
+import { ExtensionState, setGlobalExtensionState } from './core/ExtensionState';
 import { resetNotifications } from './handlers/notifications';
 import { createStatusBarItem } from './handlers/statusBar';
 import { checkUsageBasedStatus, getCurrentUsageLimit, setUsageLimit } from './services/api';
@@ -20,6 +17,7 @@ import {
 import { SUPPORTED_CURRENCIES, convertAndFormatCurrency } from './utils/currency';
 import { initializeI18n, setOnLanguageChangeCallback, t } from './utils/i18n';
 import { initializeLogging, log } from './utils/logger';
+import { openExtensionSettings } from './utils/openSettings';
 import { createReportCommand } from './utils/report';
 import { updateStats } from './utils/updateStats';
 
@@ -31,7 +29,7 @@ const RELEASE_CHECK_INTERVAL = 1000 * 60 * 60; // Check every hour
 
 export function getRefreshIntervalMs(): number {
   const config = vscode.workspace.getConfiguration('cursorStats');
-  const intervalSeconds = Math.max(config.get('refreshInterval', 30), 5); // Minimum 5 seconds
+  const intervalSeconds = Math.max(config.get('refreshInterval', 60), 10); // Minimum 10 seconds
   return intervalSeconds * 1000;
 }
 
@@ -157,33 +155,7 @@ export async function activate(context: vscode.ExtensionContext) {
       'cursor-stats.openSettings',
       async () => {
         log('[Command] Opening extension settings...');
-        // Use a more reliable way to open settings
-        const settingsUri = vscode.Uri.parse('vscode://ms-vscode.cursor-stats/settings');
-        try {
-          // Try to open settings directly first
-          await vscode.commands.executeCommand(
-            'workbench.action.openSettings',
-            '@ext:Dwtexe.cursor-stats',
-          );
-        } catch (error) {
-          console.error('[Command] Failed to open settings directly: ' + error);
-          log('[Command] Failed to open settings directly, trying alternative method...', true);
-          try {
-            // Fallback to opening settings view
-            await vscode.commands.executeCommand('workbench.action.openSettings');
-            // Then search for our extension
-            await vscode.commands.executeCommand('workbench.action.search.toggleQueryDetails');
-            await vscode.commands.executeCommand(
-              'workbench.action.search.action.replaceAll',
-              '@ext:Dwtexe.cursor-stats',
-            );
-          } catch (fallbackError) {
-            console.error('[Command] Failed to open settings with fallback method: ' + fallbackError);
-            log('[Command] Failed to open settings with fallback method', true);
-            // Show error message to user
-            vscode.window.showErrorMessage(t('notifications.failedToOpenSettings'));
-          }
-        }
+        await openExtensionSettings();
       },
     );
 

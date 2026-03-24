@@ -79,7 +79,7 @@
 | `cursorStats.enableAlerts` | Enable usage alerts | `true` |
 | `cursorStats.usageAlertThresholds` | Percentage thresholds for usage alerts | `[10, 30, 50, 75, 90, 100]` |
 | `cursorStats.showTotalRequests` | Show sum of all requests instead of only fast requests | `false` |
-| `cursorStats.refreshInterval` | Update frequency (seconds) | `60` |
+| `cursorStats.refreshInterval` | Update frequency in seconds (minimum `10`) | `60` |
 | `cursorStats.spendingAlertThreshold` | Spending alert threshold (in your selected currency) | `1` |
 | `cursorStats.currency` | Custom currency conversion | `USD` |
 | `cursorStats.showProgressBars` | Enable progress visualization | `false` |
@@ -110,7 +110,7 @@
 
 <details id="section-install">
 <summary style="cursor: pointer"><h2 style="display: inline">🚀 Installation</h2></summary>
-  
+
 #### VS Code Marketplace
 
 1. Open VS Code
@@ -142,6 +142,7 @@ Or install directly from [VS Code Marketplace](https://marketplace.visualstudio.
 ### 环境准备
 
 确保你已安装以下工具：
+
 - Node.js (>= 16)
 - npm
 - Visual Studio Code Extension CLI (`@vscode/vsce`)

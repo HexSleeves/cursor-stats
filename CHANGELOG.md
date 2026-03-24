@@ -5,6 +5,7 @@ All notable changes to the "cursor-stats" extension will be documented in this f
 ## [1.2.1] - 2025-01-28
 
 ### Added
+
 - 📅 **Today's Usage Display**: New feature to show daily spending in token mode
   - New setting `cursorStats.showTodayUsage` (enabled by default)
   - Status bar format: `$used/$max Remaining XX% • Today: $X.XX`
@@ -14,11 +15,13 @@ All notable changes to the "cursor-stats" extension will be documented in this f
   - Improved error handling and fallback mechanisms
 
 ### Changed
+
 - **Token Mode Status Bar**: Enhanced display format with today's usage integration
 - **Configuration Defaults**: Updated default values for better user experience
 - **Error Handling**: Improved fallback when token API encounters issues
 
 ### Technical Improvements
+
 - Fixed token API endpoint to use POST method with proper request body
 - Enhanced date range calculation for token usage statistics
 - Better integration between token mode and team membership detection
@@ -26,6 +29,7 @@ All notable changes to the "cursor-stats" extension will be documented in this f
 ## [1.2.0] - 2025-01-28
 
 ### Added
+
 - 💳 **Token Display Mode**: New display mode showing token usage cost instead of request count
   - Toggle between "Classic Mode" (request count) and "Token Mode" (cost in USD)
   - Status bar format in Token Mode: `$X.XX/$Y.YY Remaining ZZ%`
@@ -38,7 +42,8 @@ All notable changes to the "cursor-stats" extension will be documented in this f
   - Shows current mode and provides descriptions for each option
 
 ### Enhanced
-- 🌐 **Token API Integration**: 
+
+- 🌐 **Token API Integration**:
   - Calls `https://cursor.com/api/dashboard/get-aggregated-usage-events` for real-time token usage data
   - Supports team-based token usage tracking with proper date range filtering
   - Automatic conversion from cents to USD with precise formatting
@@ -48,10 +53,12 @@ All notable changes to the "cursor-stats" extension will be documented in this f
   - Enhanced tooltip with comprehensive token statistics including input/output/cache tokens
 
 ### Internationalization
+
 - Added Chinese and English translations for all new token-related features
 - New translation keys: `tokenUsageStats`, `totalTokens`, `inputTokens`, `outputTokens`, `cacheRead`, `cacheWrite`
 
 ### Technical Improvements
+
 - Enhanced API error handling with detailed logging for token usage endpoints
 - Improved TypeScript interfaces with `TokenUsageResponse` and `TokenUsageAggregation` types
 - Optimized team membership detection for accurate token usage reporting
@@ -59,6 +66,7 @@ All notable changes to the "cursor-stats" extension will be documented in this f
 ## [1.1.8] - 2025-01-27
 
 ### Added
+
 - ⏱️ **Remaining Days Feature**: Display remaining days until period end in status bar
   - Status bar format: `Used/Total Remaining XX% 📅X days`
   - Detailed remaining days information in tooltip
@@ -69,9 +77,11 @@ All notable changes to the "cursor-stats" extension will be documented in this f
   - Affects remaining days display in both status bar and tooltip
 
 ### Changed
+
 - Enhanced internationalization support with Chinese and English text for remaining days feature
 
 ### Technical Improvements
+
 - Added `src/utils/remainingDays.ts` utility module for comprehensive remaining days calculation
 - Optimized conditional display logic for status bar and tooltip
 - Enhanced error handling and boundary protection
@@ -79,6 +89,7 @@ All notable changes to the "cursor-stats" extension will be documented in this f
 ## [1.1.7] - 2025-08-11
 
 ### Added
+
 - Status bar now displays "Remaining Percentage": shows "Remaining XX%" after "Used/Total" with intelligent decimal precision (up to 3 decimal places, showing integers when divisible).
 - New "Smart Usage Monitor": detects heavy AI usage within a short period every N queries and warns users that the selected model might be incorrect.
   - Toggle via setting: `cursorStats.smartUsageMonitorEnabled` (enabled by default)
@@ -87,23 +98,27 @@ All notable changes to the "cursor-stats" extension will be documented in this f
   - Triggers an alert when usage increases beyond the threshold within a short window (5 minutes) and rate-limits notifications (at least 10-minute interval)
 
 ### Changed
+
 - Localization: added i18n keys for the new alerts (EN/ZH/JA/KO/RU/DE/KK).
 
 ### Fixed
+
 - None (feature and UI enhancement-focused release).
 
 ## [1.1.5] - 2025-07-03
 
 ### Added
+
 - 🔄 **Hybrid Data Collection**: Smart combination of team spend and individual usage APIs for comprehensive statistics
 - 📊 **Enhanced Model Breakdown**: Detailed tooltip showing usage across all AI models with proper labeling
   - GPT-4 (Premium/Fast): Fast premium requests
-  - GPT-4-32k (Usage-Based): Usage-based spending limit  
+  - GPT-4-32k (Usage-Based): Usage-based spending limit
   - GPT-3.5-turbo: Legacy model
 - 🔍 **Team vs Individual Comparison**: Clear distinction between team usage and individual usage for team members
 - 🎯 **Improved API Logic**: Better understanding of usage-based spending limits from GPT-4-32k data
 
 ### Changed
+
 - 🔧 **API Endpoint Migration**: Replaced deprecated `get-team-usage` with `get-team-spend` endpoint
 - 📈 **Data Source Priority**: Team members now get team-specific usage data while maintaining individual context
 - 💡 **Usage-Based Limit Detection**: GPT-4-32k `maxRequestUsage` now properly represents usage-based spending limits
@@ -111,6 +126,7 @@ All notable changes to the "cursor-stats" extension will be documented in this f
 - 🔄 **Fallback Mechanism**: Automatic fallback to individual usage API if team APIs fail
 
 ### Fixed
+
 - 🐛 **Missing Request Limits**: Resolved issue where team spend data lacked `maxRequestUsage` by combining with individual usage API
 - 🎯 **Data Accuracy**: Improved accuracy for team members by using team-specific usage data
 - 📊 **Status Bar Display**: Better alignment between dashboard data and extension display
@@ -124,20 +140,23 @@ All notable changes to the "cursor-stats" extension will be documented in this f
 ## [1.1.4] - 2025-06-06
 
 ### Added
+
 - 🌍 **Internationalization (i18n) Support**: Extension interface now supports multiple languages
   - English (Default)
-  - 中文 (Chinese) 
+  - 中文 (Chinese)
   - 한국어 (Korean)
 - 🔧 **Language Selection**: New command "Cursor Stats: Select Language" for easy language switching
 - ⚙️ **Changelog Popup Control**: New setting `cursorStats.showChangelogOnUpdate` to disable automatic changelog popup and update notifications on extension updates (disabled by default for less distraction)
 
 ### Changed
+
 - 🌐 All UI elements, notifications, and messages are now translatable
 - 📈 Status bar and tooltips adapt to selected language
 - 💰 Currency names are now localized based on selected language
 - 🔄 Automatic interface updates when language is changed
 
 ### Fixed
+
 - 🐛 Fixed undefined requests handling in team usage extraction
 - 🎯 Improved usage-based pricing period calculations for active months
 - 🔧 Better error handling for localization edge cases
@@ -162,35 +181,42 @@ All notable changes to the "cursor-stats" extension will be documented in this f
 ## [1.1.3] - 2024-07-27
 
 ### Reverted
+
 - ⏪ Reverted the SQLite library change introduced in `v1.1.2` (from `node-sqlite3-wasm` back to `sql.js`). This addresses critical token retrieval errors experienced by some users, particularly on Macos.
 
 ### Fixed
+
 - 🐛 Fixed an issue where some users could not retrieve their access token after the `v1.1.2` update due to the new SQLite library.
 
 ## [1.1.2] - 2025-05-23
 
 ### Added
+
 - ✨ Enhanced spending alert notifications to trigger for each multiple of the configured threshold, providing more granular warnings.
 - 📊 Added "Daily Remaining" feature: Shows estimated fast requests remaining per day in the tooltip.
   - Includes new settings: `cursorStats.showDailyRemaining` and `cursorStats.excludeWeekends`.
 - 🚀 Changelog Display on Update: The extension now automatically shows the changelog in a webview panel when it's updated to a new version.
 
 ### Changed
+
 - 🔧 Switched from `sql.js` to `node-sqlite3-wasm` for SQLite database handling. This change addresses potential issues with large database files (over 2GB) and improves cross-platform compatibility by using a more robust WASM-based SQLite implementation.
 - 💅 Improved tooltip formatting for usage-based pricing details, including better alignment and padding for costs and model names.
 - 🛠 Refined detection and notification logic for unknown AI models in usage data.
 - ⚙️ Spending alert notifications are now reset and re-evaluated if the `spendingAlertThreshold` setting is changed.
 
 ### Fixed
+
 - 🐛 Corrected an issue where mid-month payment amounts in tooltips might not always reflect the user's selected currency.
 - 🐞 Addressed potential minor inaccuracies in progress bar calculations when "exclude weekends" was enabled.
 
 ## [1.1.1] - 2025-05-01
 
 ### Added
+
 - 🎨 Added a new setting `cursorStats.statusBarColorThresholds` to allow customizing status bar text color based on usage percentage thresholds.
 
 ### Changed
+
 - ✨ Improved usage-based pricing calculations to more accurately reflect costs, particularly by excluding mid-month payment credits from total cost and usage percentage calculations.
 - 📊 Modified the tooltip display to filter out the mid-month payment item from the detailed list and clarify the unpaid amount calculation.
 - 🔎 Enhanced detection and display of potentially unknown models in the usage details tooltip.
@@ -199,6 +225,7 @@ All notable changes to the "cursor-stats" extension will be documented in this f
 ## [1.1.0] - 2025-04-22
 
 ### Added
+
 - 🌍 Multi-currency support
 - 📊 Progress bar visualization for usage and period tracking
 - 📝 Diagnostic report generation for troubleshooting
@@ -209,6 +236,7 @@ All notable changes to the "cursor-stats" extension will be documented in this f
 - 💡 Smart progress bars with configurable thresholds
 
 ### Changed
+
 - Refactored currency handling with real-time conversion
 - Enhanced tooltip display with centered alignment
 - Improved error handling and notifications
@@ -218,6 +246,7 @@ All notable changes to the "cursor-stats" extension will be documented in this f
 - Optimized performance for currency conversions
 
 ### Fixed
+
 - Currency display formatting issues
 - Progress bar threshold calculations
 - Model detection accuracy
@@ -228,6 +257,7 @@ All notable changes to the "cursor-stats" extension will be documented in this f
 ## [1.0.9] - 2025-02-15
 
 ### Added
+
 - Team usage support with per-user statistics tracking
 - Enhanced cooldown mechanism for API request management
 - Improved window focus handling for better performance
@@ -235,6 +265,7 @@ All notable changes to the "cursor-stats" extension will be documented in this f
 - Comprehensive error handling with detailed logging
 
 ### Changed
+
 - Refactored extension activation and update logic
 - Enhanced team usage API with team ID support
 - Improved notification system with better timing
@@ -242,6 +273,7 @@ All notable changes to the "cursor-stats" extension will be documented in this f
 - Optimized performance during window focus changes
 
 ### Fixed
+
 - Window focus handling during cooldown periods
 - Status bar update timing issues
 - Team usage data synchronization
@@ -251,12 +283,14 @@ All notable changes to the "cursor-stats" extension will be documented in this f
 ## [1.0.8] - 2025-02-08
 
 ### Added
+
 - Spending alert notifications with configurable dollar thresholds
 - UI extension host compatibility for remote development
 - New `spendingAlertThreshold` configuration option
 - Multi-threshold alert system (6 default percentage thresholds)
 
 ### Changed
+
 - Configuration structure now uses array-based format
 - Increased default refresh interval from 30 to 60 seconds
 - Raised minimum refresh interval from 5 to 10 seconds
@@ -264,11 +298,13 @@ All notable changes to the "cursor-stats" extension will be documented in this f
 - Updated notification sorting logic to handle more thresholds
 
 ### Removed
+
 - Legacy VSIX package file from repository
 
 ## [1.0.7] - 2025-02-07
 
 ### Added
+
 - Comprehensive GitHub release notes viewer with markdown support
 - Enhanced release check functionality with detailed release information
 - Support for release assets and source code download links
@@ -276,6 +312,7 @@ All notable changes to the "cursor-stats" extension will be documented in this f
 - Improved WSL database path handling
 
 ### Changed
+
 - Updated status bar color scheme for better visual consistency
 - Refactored Windows username utility into database service
 - Enhanced usage cost display formatting
@@ -283,6 +320,7 @@ All notable changes to the "cursor-stats" extension will be documented in this f
 - Updated package dependencies to latest versions
 
 ### Removed
+
 - Redundant Windows username utility module
 
 ## [1.0.6] - 2025-02-06

@@ -813,7 +813,9 @@ export async function updateStats(statusBarItem: vscode.StatusBarItem) {
 
     log('[Status Bar] Updating status bar with new stats...');
     statusBarItem.text = `$(graph)${totalUsageText}`;
-    statusBarItem.tooltip = await createMarkdownTooltip(tooltipLines, false, contentLines);
+    statusBarItem.tooltip = await createMarkdownTooltip(tooltipLines, false, contentLines, {
+      usageBasedStatus: usageStatus,
+    });
     statusBarItem.show();
     log('[Stats] Stats update completed successfully');
 

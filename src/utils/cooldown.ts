@@ -6,6 +6,7 @@
 
 import * as vscode from 'vscode';
 import { CooldownManager, type RefreshCallback } from '../core/CooldownManager';
+import { getGlobalExtensionState } from '../core/ExtensionState';
 
 // Lazy-loaded CooldownManager instance
 let _cooldownManager: CooldownManager | null = null;
@@ -27,6 +28,13 @@ export function initializeCooldown(
   getRefreshIntervalMs: () => number,
   refreshCallback: RefreshCallback,
 ): void {
+  const extensionState = getGlobalExtensionState();
+  if (extensionState) {
+    extensionState.setStatusBarItem(statusBarItem);
+    _cooldownManager = extensionState.getCooldownManager;
+    return;
+  }
+
   _cooldownManager = new CooldownManager(statusBarItem, getRefreshIntervalMs, refreshCallback);
 }
 

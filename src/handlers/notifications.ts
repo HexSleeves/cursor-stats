@@ -15,6 +15,7 @@ import { convertAndFormatCurrency } from '../utils/currency';
 import { UsageInfo } from '../interfaces/types';
 import { t } from '../utils/i18n';
 import { getGlobalNotificationState, type NotificationState } from '../core/NotificationState';
+import { openExtensionSettings } from '../utils/openSettings';
 
 /**
  * Get the notification state instance
@@ -235,28 +236,7 @@ export async function checkAndNotifyUsage(usageInfo: UsageInfo) {
       );
 
       if (notification === t('notifications.viewSettingsTitle')) {
-        try {
-          await vscode.commands.executeCommand(
-            'workbench.action.openSettings',
-            '@ext:Dwtexe.cursor-stats',
-          );
-        } catch (error) {
-          log(
-            '[Notifications] Failed to open settings directly, trying alternative method...',
-            true,
-          );
-          try {
-            await vscode.commands.executeCommand('workbench.action.openSettings');
-            await vscode.commands.executeCommand('workbench.action.search.toggleQueryDetails');
-            await vscode.commands.executeCommand(
-              'workbench.action.search.actionreplaceAll',
-              '@ext:Dwtexe.cursor-stats',
-            );
-          } catch (fallbackError) {
-            log('[Notifications] Failed to open settings with fallback method', true);
-            vscode.window.showErrorMessage(t('notifications.failedToOpenSettings'));
-          }
-        }
+        await openExtensionSettings();
       } else if (
         notification === t('notifications.manageLimitTitle') ||
         notification === t('notifications.enableUsageBasedTitle')

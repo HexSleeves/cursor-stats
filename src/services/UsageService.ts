@@ -18,10 +18,7 @@ import type {
   UsageBasedStatus,
   TodayUsageData,
 } from '../interfaces/types';
-import {
-  CursorRepository,
-  isRepositorySuccess
-} from '../repositories/CursorRepository';
+import { CursorRepository, isRepositorySuccess } from '../repositories/CursorRepository';
 import { TeamRepository, type TeamMembershipInfo } from '../repositories/TeamRepository';
 
 /**

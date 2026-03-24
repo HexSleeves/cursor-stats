@@ -150,7 +150,7 @@ export class ExtensionState {
   getConfig(): ExtensionConfig {
     const config = vscode.workspace.getConfiguration('cursorStats');
     return {
-      refreshIntervalMs: Math.max(config.get<number>('refreshInterval', 30), 5) * 1000,
+      refreshIntervalMs: Math.max(config.get<number>('refreshInterval', 60), 10) * 1000,
       enableStatusBarColors: config.get<boolean>('enableStatusBarColors', true),
       enableAlerts: config.get<boolean>('enableAlerts', true),
       currency: config.get<string>('currency', 'USD'),

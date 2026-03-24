@@ -1,12 +1,8 @@
 import * as vscode from 'vscode';
 import { log } from '../utils/logger';
-import { getCurrentUsageLimit, checkUsageBasedStatus } from '../services/api';
-import { getCursorTokenFromDB } from '../services/database';
 import { convertAndFormatCurrency } from '../utils/currency';
 import { t } from '../utils/i18n';
-import { getExtensionContext } from '../extension';
 import { formatPercentageIntelligent } from '../utils/percentageFormatter';
-import { checkTeamMembership } from '../services/team';
 import {
   shouldShowProgressBars,
   createPeriodProgressBar,
@@ -18,6 +14,7 @@ import {
 import { TooltipBuilder } from '../ui/TooltipBuilder';
 import { getStatusBarColor } from '../ui/StatusColorProvider';
 import type { ColorThreshold } from '../ui/StatusColorProvider';
+import type { TooltipUsageContext } from '../interfaces/types';
 
 let statusBarItem: vscode.StatusBarItem;
 
@@ -46,6 +43,7 @@ export async function createMarkdownTooltip(
   lines: string[],
   isError: boolean = false,
   allLines: string[] = [],
+  context: TooltipUsageContext = {},
 ): Promise<vscode.MarkdownString> {
   const tooltip = new vscode.MarkdownString();
   tooltip.isTrusted = true;
@@ -170,180 +168,151 @@ export async function createMarkdownTooltip(
       }
     }
 
-    // Usage Based Pricing Section
-    const token = await getCursorTokenFromDB();
-    let isEnabled = false;
+    const usageBasedStatus = context.usageBasedStatus;
+    const isEnabled = usageBasedStatus?.isEnabled ?? false;
 
-    if (token) {
-      try {
-        // Check if user is a team member to pass teamId to the usage-based status check
-        const context = getExtensionContext();
-        const teamInfo = await checkTeamMembership(token, context);
-
-        // Use the new checkUsageBasedStatus function with teamId if available
-        const usageStatus = await checkUsageBasedStatus(token, teamInfo.teamId);
-        isEnabled = usageStatus.isEnabled;
-        const limitResponse = await getCurrentUsageLimit(token, teamInfo.teamId);
-
-        // Find the original USD data from allLines
-        let originalUsageData = null;
-        if (allLines && allLines.length > 0) {
-          const metadataLine = allLines.find((line) => line.includes('__USD_USAGE_DATA__:'));
-          if (metadataLine) {
-            try {
-              const jsonStr = metadataLine.split('__USD_USAGE_DATA__:')[1].trim();
-              originalUsageData = JSON.parse(jsonStr);
-            } catch (e: any) {
-              log('[Status Bar] Error parsing USD data: ' + e.message, true);
-            }
-          }
-        }
-
-        const costLine = lines.find((line) => line.includes(t('statusBar.totalCost')));
-        let totalCost = 0;
-        let formattedTotalCost = '';
-
-        if (costLine) {
-          // Extract the cost value, regardless of currency format
-          const costMatch = costLine.match(/[^0-9]*([0-9.,]+)/);
-          if (costMatch && costMatch[1]) {
-            // Convert back to a number, removing any non-numeric characters except decimal point
-            totalCost = Number.parseFloat(costMatch[1].replace(/[^0-9.]/g, ''));
-            formattedTotalCost = costLine.split(':')[1].trim();
-          }
-        }
-
-        const usageBasedPeriodLine = lines.find((line) =>
-          line.includes(t('statusBar.usageBasedPeriod')),
-        );
-
-        tooltip.appendMarkdown('<div align="center">\n\n');
-        tooltip.appendMarkdown(
-          `### 📈 ${t('statusBar.usageBasedPricing')} (${isEnabled ? t('statusBar.enabled') : t('statusBar.disabled')})\n\n`,
-        );
-        tooltip.appendMarkdown('</div>\n\n');
-
-        if (isEnabled && limitResponse.hardLimit) {
-          if (usageBasedPeriodLine) {
-            const periodText = usageBasedPeriodLine.split(':')[1].trim();
-
-            // Use the original USD data for percentage calculation if available
-            let usagePercentage = '0.0';
-            if (originalUsageData && originalUsageData.percentage) {
-              usagePercentage = originalUsageData.percentage;
-            } else {
-              // Fallback to calculating with converted values
-              usagePercentage = formatPercentageIntelligent(
-                (totalCost / limitResponse.hardLimit) * 100,
-              );
-            }
-
-            // Convert the limit to the user's preferred currency
-            const formattedLimit = await convertAndFormatCurrency(limitResponse.hardLimit);
-
-            // Calculate date elapsed percentage for usage-based period
-            const [startDate, endDate] = periodText.split('-').map((d) => d.trim());
-            const elapsedPercent = Math.round(calculateDateElapsedPercentage(startDate, endDate));
-
-            tooltip.appendMarkdown(
-              `<div align="center">${periodText} (${elapsedPercent}%) ● ${formattedLimit} (${usagePercentage}% | ${formattedTotalCost} ${t('statusBar.used')})</div>\n\n`,
-            );
-
-            // Add usage-based pricing progress bar
-            if (shouldShowProgressBars()) {
-              const usageProgressBar = createUsageProgressBar(
-                Number.parseFloat(usagePercentage),
-                100,
-                t('statusBar.usage'),
-              );
-              if (usageProgressBar) {
-                tooltip.appendMarkdown(`<div align="center">${usageProgressBar}</div>\n\n`);
-              }
-
-              // Add period progress bar
-              const periodProgressBar = createPeriodProgressBar(
-                periodText,
-                undefined,
-                t('statusBar.period'),
-              );
-              if (periodProgressBar) {
-                tooltip.appendMarkdown(`<div align="center">${periodProgressBar}</div>\n\n`);
-              }
-            }
-          }
-        } else if (!isEnabled) {
-          tooltip.appendMarkdown(`> ℹ️ ${t('statusBar.usageBasedDisabled')}\n\n`);
-        }
-
-        // Show usage details regardless of enabled/disabled status
-        // Filter out the mid-month payment item before displaying
-        const pricingLines = lines
-          .filter(
-            (line) =>
-              (line.includes('*') || line.includes('→')) &&
-              line.includes('➜') &&
-              !line.includes(t('api.midMonthPayment')), // Exclude the mid-month payment line item
-          )
-          .sort((a, b) => {
-            // Extract request count from the line (e.g., "   • **042** req @ $0.001~ ➜  **$0.04**   (gpt-4-turbo)")
-            // The count is between the first pair of double asterisks.
-            const countA = Number.parseInt(a.match(/\*\*(\d+)\*\*/)?.[1] || '0');
-            const countB = Number.parseInt(b.match(/\*\*(\d+)\*\*/)?.[1] || '0');
-            return countB - countA; // Sort in descending order
-          });
-
-        if (pricingLines.length > 0) {
-          // Find mid-month payment from the lines directly
-          const informationalMidMonthLine = lines.find((line) =>
-            line.includes(t('statusBar.youHavePaid').split(' {amount}')[0]),
+    // Find the original USD data from allLines
+    let originalUsageData = null;
+    if (allLines && allLines.length > 0) {
+      const metadataLine = allLines.find((line) => line.includes('__USD_USAGE_DATA__:'));
+      if (metadataLine) {
+        try {
+          const jsonStr = metadataLine.split('__USD_USAGE_DATA__:')[1].trim();
+          originalUsageData = JSON.parse(jsonStr);
+        } catch (error) {
+          log(
+            '[Status Bar] Error parsing USD usage metadata: ' +
+              (error instanceof Error ? error.message : String(error)),
+            true,
           );
-          let midMonthPayment = 0;
-          let formattedMidMonthPayment = '';
-
-          if (informationalMidMonthLine) {
-            // Extract the payment amount from the informational line
-            const paymentMatch = informationalMidMonthLine.match(/paid ([^ ]+)/); // Match the amount after "paid "
-            if (paymentMatch && paymentMatch[1]) {
-              formattedMidMonthPayment = paymentMatch[1];
-              // Attempt to parse the numerical value, removing currency symbols/commas
-              midMonthPayment = Number.parseFloat(formattedMidMonthPayment.replace(/[^0-9.]/g, '')) || 0;
-            }
-          }
-
-          const unpaidAmount = totalCost - midMonthPayment;
-
-          // Use formatted output directly
-          pricingLines.forEach((line) => {
-            tooltip.appendMarkdown(`• ${line.replace('•', '').trim()}\n\n`);
-          });
-
-          // Add mid-month payment message if it exists (using the found informational line)
-          if (informationalMidMonthLine) {
-            const unpaidPrefix = t('statusBar.unpaidAmount').split(' {amount}')[0];
-            let extractedUnpaidAmountStr = lines
-              .find((line) => line.includes(unpaidPrefix))
-              ?.split(unpaidPrefix + ':')[1]
-              .trim();
-            if (extractedUnpaidAmountStr && extractedUnpaidAmountStr.endsWith(')')) {
-              extractedUnpaidAmountStr = extractedUnpaidAmountStr.slice(0, -1);
-            }
-            const formattedUnpaidAmount =
-              extractedUnpaidAmountStr || (await convertAndFormatCurrency(unpaidAmount));
-
-            // Use the already formatted informational line, just add the unpaid part dynamically
-            tooltip.appendMarkdown(
-              `> ${informationalMidMonthLine.trim()}. (${t('statusBar.unpaidAmount', { amount: `**${formattedUnpaidAmount}**` })})\n\n`,
-            );
-          }
-        } else {
-          tooltip.appendMarkdown(`> ℹ️ ${t('statusBar.noUsageRecorded')}\n\n`);
         }
-      } catch (error: any) {
-        log('[API] Error fetching limit for tooltip: ' + error.message, true);
-        tooltip.appendMarkdown(`> ⚠️ ${t('statusBar.errorCheckingStatus')}\n\n`);
       }
+    }
+
+    const costLine = lines.find((line) => line.includes(t('statusBar.totalCost')));
+    let totalCost = 0;
+    let formattedTotalCost = '';
+
+    if (costLine) {
+      const costMatch = costLine.match(/[^0-9]*([0-9.,]+)/);
+      if (costMatch && costMatch[1]) {
+        totalCost = Number.parseFloat(costMatch[1].replace(/[^0-9.]/g, ''));
+        formattedTotalCost = costLine.split(':')[1].trim();
+      }
+    }
+
+    const usageBasedPeriodLine = lines.find((line) =>
+      line.includes(t('statusBar.usageBasedPeriod')),
+    );
+
+    tooltip.appendMarkdown('<div align="center">\n\n');
+    tooltip.appendMarkdown(
+      `### 📈 ${t('statusBar.usageBasedPricing')} (${isEnabled ? t('statusBar.enabled') : t('statusBar.disabled')})\n\n`,
+    );
+    tooltip.appendMarkdown('</div>\n\n');
+
+    if (isEnabled && usageBasedStatus?.limit) {
+      if (usageBasedPeriodLine) {
+        const periodText = usageBasedPeriodLine.split(':')[1].trim();
+
+        let usagePercentage = '0.0';
+        if (
+          originalUsageData &&
+          typeof originalUsageData === 'object' &&
+          'percentage' in originalUsageData
+        ) {
+          usagePercentage = String(originalUsageData.percentage);
+        } else {
+          usagePercentage = formatPercentageIntelligent((totalCost / usageBasedStatus.limit) * 100);
+        }
+
+        const formattedLimit = await convertAndFormatCurrency(usageBasedStatus.limit);
+        const [startDate, endDate] = periodText.split('-').map((d) => d.trim());
+        const elapsedPercent = Math.round(calculateDateElapsedPercentage(startDate, endDate));
+
+        tooltip.appendMarkdown(
+          `<div align="center">${periodText} (${elapsedPercent}%) ● ${formattedLimit} (${usagePercentage}% | ${formattedTotalCost} ${t('statusBar.used')})</div>\n\n`,
+        );
+
+        if (shouldShowProgressBars()) {
+          const usageProgressBar = createUsageProgressBar(
+            Number.parseFloat(usagePercentage),
+            100,
+            t('statusBar.usage'),
+          );
+          if (usageProgressBar) {
+            tooltip.appendMarkdown(`<div align="center">${usageProgressBar}</div>\n\n`);
+          }
+
+          const periodProgressBar = createPeriodProgressBar(
+            periodText,
+            undefined,
+            t('statusBar.period'),
+          );
+          if (periodProgressBar) {
+            tooltip.appendMarkdown(`<div align="center">${periodProgressBar}</div>\n\n`);
+          }
+        }
+      }
+    } else if (!isEnabled) {
+      tooltip.appendMarkdown(`> ℹ️ ${t('statusBar.usageBasedDisabled')}\n\n`);
     } else {
       tooltip.appendMarkdown(`> ⚠️ ${t('statusBar.unableToCheckStatus')}\n\n`);
+    }
+
+    const pricingLines = lines
+      .filter(
+        (line) =>
+          (line.includes('*') || line.includes('→')) &&
+          line.includes('➜') &&
+          !line.includes(t('api.midMonthPayment')),
+      )
+      .sort((a, b) => {
+        const countA = Number.parseInt(a.match(/\*\*(\d+)\*\*/)?.[1] || '0');
+        const countB = Number.parseInt(b.match(/\*\*(\d+)\*\*/)?.[1] || '0');
+        return countB - countA;
+      });
+
+    if (pricingLines.length > 0) {
+      const informationalMidMonthLine = lines.find((line) =>
+        line.includes(t('statusBar.youHavePaid').split(' {amount}')[0]),
+      );
+      let midMonthPayment = 0;
+      let formattedMidMonthPayment = '';
+
+      if (informationalMidMonthLine) {
+        const paymentMatch = informationalMidMonthLine.match(/paid ([^ ]+)/);
+        if (paymentMatch && paymentMatch[1]) {
+          formattedMidMonthPayment = paymentMatch[1];
+          midMonthPayment =
+            Number.parseFloat(formattedMidMonthPayment.replace(/[^0-9.]/g, '')) || 0;
+        }
+      }
+
+      const unpaidAmount = totalCost - midMonthPayment;
+
+      pricingLines.forEach((line) => {
+        tooltip.appendMarkdown(`• ${line.replace('•', '').trim()}\n\n`);
+      });
+
+      if (informationalMidMonthLine) {
+        const unpaidPrefix = t('statusBar.unpaidAmount').split(' {amount}')[0];
+        let extractedUnpaidAmountStr = lines
+          .find((line) => line.includes(unpaidPrefix))
+          ?.split(unpaidPrefix + ':')[1]
+          .trim();
+        if (extractedUnpaidAmountStr && extractedUnpaidAmountStr.endsWith(')')) {
+          extractedUnpaidAmountStr = extractedUnpaidAmountStr.slice(0, -1);
+        }
+        const formattedUnpaidAmount =
+          extractedUnpaidAmountStr || (await convertAndFormatCurrency(unpaidAmount));
+
+        tooltip.appendMarkdown(
+          `> ${informationalMidMonthLine.trim()}. (${t('statusBar.unpaidAmount', { amount: `**${formattedUnpaidAmount}**` })})\n\n`,
+        );
+      }
+    } else {
+      tooltip.appendMarkdown(`> ℹ️ ${t('statusBar.noUsageRecorded')}\n\n`);
     }
   }
 

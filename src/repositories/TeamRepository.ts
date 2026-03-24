@@ -22,10 +22,7 @@ import {
   UserCache,
   CursorUsageResponse,
 } from '../interfaces/types';
-import {
-  API_ENDPOINTS,
-  API_CONFIG, TOKEN_USER_ID_SEPARATOR
-} from '../constants/api';
+import { API_ENDPOINTS, API_CONFIG, TOKEN_USER_ID_SEPARATOR } from '../constants/api';
 import { log } from '../utils/logger';
 import { createCursorHeaders } from '../utils/httpHeaders';
 

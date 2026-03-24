@@ -21,7 +21,7 @@ Cursor Stats is a VS Code extension that monitors Cursor AI usage statistics. Th
 
 ## Directory Structure
 
-```
+```bash
 src/
 ├── extension.ts              # Extension activation/deactivation entry point
 ├── core/                     # Core state management
@@ -86,6 +86,7 @@ src/
 **Purpose:** Manage extension lifecycle and state
 
 **Classes:**
+
 - **ExtensionState** - Holds VS Code context and global state
 - **CooldownManager** - Manages error cooldown state with proper encapsulation
 - **NotificationState** - Tracks notification schedules and thresholds
@@ -113,6 +114,7 @@ class CooldownManager {
 **Purpose:** Abstract data access and HTTP calls
 
 **Classes:**
+
 - **CursorRepository** - Handles all Cursor.com API calls
 - **TeamRepository** - Handles team-related API calls
 
@@ -132,6 +134,7 @@ class CursorRepository {
 **Purpose:** Business logic orchestration
 
 **Classes:**
+
 - **StatsService** - Orchestrates stats fetching and processing
 - **UsageService** - Processes usage data for display
 
@@ -159,6 +162,7 @@ class StatsService {
 **Purpose:** Transform raw data into domain objects
 
 **Classes:**
+
 - **ModelDetector** - Extracts model names from descriptions
 - **ItemProcessor** - Processes invoice items
 - **UsageCalculator** - Calculates usage metrics
@@ -178,6 +182,7 @@ class ModelDetector {
 **Purpose:** UI updates and event handling
 
 **Classes:**
+
 - **StatsUpdateHandler** - Coordinates stats updates
 - **TokenModeHandler** - Strategy for token mode display
 - **ClassicModeHandler** - Strategy for classic mode display
@@ -208,6 +213,7 @@ class TokenModeStrategy implements StatsDisplayStrategy {
 **Purpose:** UI component generation
 
 **Classes:**
+
 - **TooltipBuilder** - Builds tooltip HTML content
 - **StatusColorProvider** - Determines status bar colors
 
@@ -273,18 +279,23 @@ errorHandler (log, notify user)
 ## Key Design Patterns
 
 ### 1. Repository Pattern
+
 Separates data access from business logic. Repositories only handle HTTP calls and return Result types.
 
 ### 2. Strategy Pattern
+
 Different display modes (Token vs Classic) are implemented as interchangeable strategies.
 
 ### 3. Builder Pattern
+
 TooltipBuilder provides fluent interface for constructing complex tooltips.
 
 ### 4. Dependency Injection
+
 Services receive dependencies through constructors, making testing easier.
 
 ### 5. Result Type
+
 Repositories return `Result<T>` instead of throwing exceptions, making error handling explicit.
 
 ---
@@ -304,6 +315,7 @@ Repositories return `Result<T>` instead of throwing exceptions, making error han
 ### Backward Compatibility
 
 The refactoring maintains backward compatibility:
+
 - `cooldown.ts` now uses CooldownManager internally
 - Existing APIs are preserved
 - Extension behavior remains unchanged
@@ -313,11 +325,13 @@ The refactoring maintains backward compatibility:
 ## Testing Strategy
 
 ### Unit Tests
+
 - **Processors** - Test data transformation logic
 - **Services** - Mock repositories, test business logic
 - **State Managers** - Test state transitions
 
 ### Integration Tests
+
 - **Handlers** - Test full update flow
 - **Repositories** - Test API integration with mocks
 

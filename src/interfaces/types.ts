@@ -91,6 +91,13 @@ export interface UsageLimitResponse {
   noUsageBasedAllowed?: boolean;
 }
 
+export interface TooltipUsageContext {
+  usageBasedStatus?: {
+    isEnabled: boolean;
+    limit?: number;
+  };
+}
+
 export interface GitHubRelease {
   tag_name: string;
   name: string;

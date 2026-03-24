@@ -14,8 +14,9 @@ import * as jwt from 'jsonwebtoken';
 import {
   TeamInfo,
   TeamMemberInfo,
-  TeamSpendResponse, UserCache,
-  CursorUsageResponse
+  TeamSpendResponse,
+  UserCache,
+  CursorUsageResponse,
 } from '../interfaces/types';
 import { log } from '../utils/logger';
 import { createCursorHeaders, enhanceApiError } from '../utils/httpHeaders';

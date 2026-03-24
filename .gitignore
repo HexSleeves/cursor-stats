@@ -10,7 +10,6 @@ node_modules
 user-cache.json
 currency-rates.json
 .cursorignore
-package-lock.json
 har-files/
 CLAUDE.md
 cursor-stats-report*

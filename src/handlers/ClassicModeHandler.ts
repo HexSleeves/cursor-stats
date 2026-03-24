@@ -29,8 +29,9 @@ import {
 } from '../utils/remainingDays';
 import { DateFormatter } from '../utils/dateFormatter';
 import {
-  checkAndNotifyUsage, checkAndNotifyUnpaidInvoice,
-  checkAndNotifySmartUsageMonitor
+  checkAndNotifyUsage,
+  checkAndNotifyUnpaidInvoice,
+  checkAndNotifySmartUsageMonitor,
 } from './notifications';
 
 /**
