@@ -10,6 +10,7 @@ import { log, getLogHistory } from './logger';
 import { getTeamSpend, checkTeamMembership } from '../services/team';
 import { getExtensionContext } from '../extension';
 import { t } from './i18n';
+import { getExtensionPackageInfo } from './packageInfo';
 
 /**
  * Generates a comprehensive report of the extension's data and API responses
@@ -18,12 +19,12 @@ export async function generateReport(): Promise<{ reportPath: string; success: b
   log('[Report] Starting report generation');
 
   const context = getExtensionContext();
-  const packageJson = require('../../package.json');
+  const packageInfo = getExtensionPackageInfo(context.extensionPath);
 
   // Initialize the report object
   const report: CursorReport = {
     timestamp: new Date().toISOString(),
-    extensionVersion: packageJson.version,
+    extensionVersion: packageInfo.version,
     os: `${os.platform()} ${os.release()}`,
     vsCodeVersion: vscode.version,
     cursorStats: null,

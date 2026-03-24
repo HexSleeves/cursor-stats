@@ -18,6 +18,7 @@ import { SUPPORTED_CURRENCIES, convertAndFormatCurrency } from './utils/currency
 import { initializeI18n, setOnLanguageChangeCallback, t } from './utils/i18n';
 import { initializeLogging, log } from './utils/logger';
 import { openExtensionSettings } from './utils/openSettings';
+import { getExtensionPackageInfo } from './utils/packageInfo';
 import { createReportCommand } from './utils/report';
 import { updateStats } from './utils/updateStats';
 
@@ -59,9 +60,7 @@ export async function activate(context: vscode.ExtensionContext) {
     log('[Initialization] Extension activation started');
     extensionContext = context;
 
-    // Get package.json for current version
-    const packageJson = require('../package.json');
-    const currentVersion = packageJson.version;
+    const currentVersion = getExtensionPackageInfo(context.extensionPath).version;
 
     // Check if we need to show changelog after update
     const lastInstalledVersion = context.globalState.get('lastInstalledVersion');

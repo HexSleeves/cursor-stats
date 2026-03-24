@@ -6,14 +6,13 @@ import * as vscode from 'vscode';
 import { marked } from 'marked';
 import { getExtensionContext } from '../extension';
 import { t } from '../utils/i18n';
+import { getExtensionPackageInfo } from '../utils/packageInfo';
 
 const SHOWN_CHANGELOGS_KEY = 'shownChangelogs';
 
 export async function checkGitHubRelease(): Promise<ReleaseCheckResult | null> {
   try {
-    // Get current version from package.json
-    const packageJson = require('../../package.json');
-    const currentVersion = packageJson.version;
+    const currentVersion = getExtensionPackageInfo(getExtensionContext().extensionPath).version;
 
     const response = await axios.get('https://api.github.com/repos/dwtexe/cursor-stats/releases');
     const releases: GitHubRelease[] = response.data;

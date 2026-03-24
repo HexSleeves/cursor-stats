@@ -160,10 +160,13 @@ npm install -g @vscode/vsce
 ### 开发命令
 
 ```bash
-# 编译 TypeScript 代码
+# 类型检查
+npm run typecheck
+
+# 使用 Rolldown 打包扩展
 npm run compile
 
-# 监听文件变化并自动编译
+# 监听文件变化并自动重新打包
 npm run watch
 
 # 代码格式化
@@ -194,7 +197,7 @@ vsce publish
 
 ### 注意事项
 
-1. **打包前必须编译**：确保运行 `npm run compile` 编译 TypeScript 代码
+1. **打包前必须编译**：确保运行 `npm run compile` 使用 Rolldown 生成扩展包
 2. **版本号检查**：确认 `package.json` 中的版本号正确
 3. **构建目录**：`.vsix` 文件默认生成在 `builds/` 目录
 4. **本地化文件**：编译过程会自动复制 `src/locales/` 到 `out/locales/`

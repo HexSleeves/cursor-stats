@@ -434,14 +434,15 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./ && npm run copy-locales",
+    "vscode:package": "vsce package",
+    "compile": "rolldown -c && npm run copy-locales",
     "copy-locales": "node -e \"const fs=require('node:fs'),path=require('node:path'); const src='src/locales',dest='out/locales'; if(fs.existsSync(src)){fs.mkdirSync(dest,{recursive:true}); fs.readdirSync(src).forEach(file=>fs.copyFileSync(path.join(src,file),path.join(dest,file))); console.log('Locales copied to out/locales');}\"",
-    "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
+    "watch": "rolldown -c -w",
+    "pretest": "npm run typecheck && npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "vscode-test",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit -p ./"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "9.0.10",
@@ -454,8 +455,10 @@
     "@typescript-eslint/parser": "8.57.2",
     "@vscode/test-cli": "^0.0.12",
     "eslint": "9.39.2",
+    "prettier": "^3.8.1",
+    "rolldown": "^1.0.0-rc.11",
     "typescript": "5.9.3",
-    "prettier": "^3.8.1"
+    "vsce": "^2.15.0"
   },
   "dependencies": {
     "axios": "1.13.6",
